@@ -1,0 +1,35 @@
+# ==========================================
+# I.M.I.S.S.H.E.R MONOREPO GITIGNORE
+# ==========================================
+
+# 1. Bỏ qua cấu hình hệ điều hành / Editor
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 2. Bỏ qua rác của NestJS Backend (Node.js)
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 3. Bỏ qua rác của FastAPI AI (Python)
+**/venv/
+**/env/
+**/.env/
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/.pytest_cache/
+**/.mypy_cache/
