@@ -1,4 +1,4 @@
-version: '3.8'
+2version: '3.8'
 services:
   postgres-db:
     # Sử dụng image đặc biệt có sẵn pgvector cho tính năng AI Face Recognition

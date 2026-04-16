@@ -51,7 +51,7 @@ def tao_file_csv():
 
     # Chuyển thành file CSV
     df = pd.DataFrame(danh_sach_thuoc)
-    file_name = "Du_lieu_tu_thuoc_IMISSHER.csv"
+    file_name = "data/Du_lieu_tu_thuoc_IMISSHER.csv"
     df.to_csv(file_name, index=False, encoding="utf-8-sig")
     
     print(f"✅ Xong! Đã tạo file {file_name} với {len(danh_sach_thuoc)} loại thuốc.")

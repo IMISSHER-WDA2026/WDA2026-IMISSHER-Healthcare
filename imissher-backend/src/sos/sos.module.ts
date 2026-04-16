@@ -1,4 +1,9 @@
 import { Module } from '@nestjs/common';
+import { SosService } from './sos.service';
+import { SosController } from './sos.controller';
 
-@Module({})
+@Module({
+  controllers: [SosController],
+  providers: [SosService],
+})
 export class SosModule {}

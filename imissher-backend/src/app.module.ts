@@ -6,10 +6,18 @@ import { FaceRecognitionModule } from './face-recognition/face-recognition.modul
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthMetricsModule } from './health-metrics/health-metrics.module';
 import { AuthModule } from './auth/auth.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { SosModule } from './sos/sos.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MedicinesModule } from './medicines/medicines.module';
+import { HealthMetricsModule } from './health-metrics/health-metrics.module';
+import { FaceRecognitionModule } from './face-recognition/face-recognition.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 import { MedicinesModule } from './medicines/medicines.module';
 import { SosModule } from './sos/sos.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [ChatbotModule, FaceRecognitionModule, NotificationsModule, HealthMetricsModule, AuthModule, MedicinesModule, SosModule, UploadsModule, UsersModule],

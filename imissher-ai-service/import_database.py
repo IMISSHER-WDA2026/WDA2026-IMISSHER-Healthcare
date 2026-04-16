@@ -24,9 +24,9 @@ def import_len_supabase():
     
     # Đọc file CSV
     try:
-        df = pd.read_csv("cam_nang_so_cuu.csv", sep=';', encoding='utf-8')
+        df = pd.read_csv("data/cam_nang_so_cuu.csv", sep=';', encoding='utf-8')
     except:
-        df = pd.read_csv("cam_nang_so_cuu.csv", sep=',', encoding='utf-8')
+        df = pd.read_csv("data/cam_nang_so_cuu.csv", sep=',', encoding='utf-8')
         
     thanh_cong = 0
     that_bai = 0
