@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+// default controller and service
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
+// functional modules
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { FaceRecognitionModule } from './face-recognition/face-recognition.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -12,7 +18,43 @@ import { UploadsModule } from './uploads/uploads.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
-  imports: [ChatbotModule, FaceRecognitionModule, NotificationsModule, HealthMetricsModule, AuthModule, MedicinesModule, SosModule, UploadsModule, UsersModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>('DATABASE_URL') || undefined,
+
+        // Tách ra thêm trong trường hợp URL không nhận diện đươck
+        host: configService.get<string>('DB_HOST') || 'db.wunmyjagiwljvxrsurxe.supabase.co',
+        port: Number(configService.get<string>('DB_PORT') || 5432),
+        username: configService.get<string>('DB_USERNAME') || undefined,
+        password: configService.get<string>('DB_PASSWORD') || '3RAxL9E.GG./B7',
+        database: configService.get<string>('DB_DATABASE') || undefined,
+        autoLoadEntities: true,
+        synchronize: false,
+        ssl: configService.get<string>('DATABASE_URL')
+          ? { rejectUnauthorized: false }
+          : false,
+      }),
+    }),
+
+    ChatbotModule,
+    FaceRecognitionModule,
+    NotificationsModule,
+    HealthMetricsModule,
+    AuthModule,
+    MedicinesModule,
+    SosModule,
+    UploadsModule,
+    UsersModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

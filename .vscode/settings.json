@@ -1,0 +1,23 @@
+{
+    "sqltools.connections": [
+        {
+            "pgOptions": {
+                "ssl": {
+                    "rejectUnauthorized": false
+                }
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "db.wunmyjagiwljvxrsurxe.supabase.co",
+            "port": 5432,
+            "sshOptions": {
+                "port": 22
+            },
+            "driver": "PostgreSQL",
+            "name": "healthcare-db",
+            "database": "postgres",
+            "username": "postgres",
+            "password": "3RAxL9E.GG./B7g"
+        }
+    ]
+}
