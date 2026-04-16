@@ -1,0 +1,62 @@
+﻿name,active_ingredient,barcode,description,contraindications
+Paracetamol,Paracetamol,8931110000000,"Giảm đau, hạ sốt, chống viêm liên quan đến Paracetamol.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Aspirin,Aspirin,8931110000001,"Giảm đau, hạ sốt, chống viêm liên quan đến Aspirin.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Ibuprofen,Ibuprofen,8931110000002,"Giảm đau, hạ sốt, chống viêm liên quan đến Ibuprofen.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Diclofenac,Diclofenac,8931110000003,"Giảm đau, hạ sốt, chống viêm liên quan đến Diclofenac.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Ketoprofen,Ketoprofen,8931110000004,"Giảm đau, hạ sốt, chống viêm liên quan đến Ketoprofen.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Naproxen,Naproxen,8931110000005,"Giảm đau, hạ sốt, chống viêm liên quan đến Naproxen.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Celecoxib,Celecoxib,8931110000006,"Giảm đau, hạ sốt, chống viêm liên quan đến Celecoxib.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Panadol Extra,Panadol Extra,8931110000007,"Giảm đau, hạ sốt, chống viêm liên quan đến Panadol Extra.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Hapacol,Hapacol,8931110000008,"Giảm đau, hạ sốt, chống viêm liên quan đến Hapacol.","Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+Amoxicillin,Amoxicillin,8931110000009,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Amoxicillin.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Augmentin,Augmentin,8931110000010,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Augmentin.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Ciprofloxacin,Ciprofloxacin,8931110000011,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Ciprofloxacin.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Azithromycin,Azithromycin,8931110000012,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Azithromycin.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Cephalexin,Cephalexin,8931110000013,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Cephalexin.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Doxycycline,Doxycycline,8931110000014,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Doxycycline.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Metronidazole,Metronidazole,8931110000015,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Metronidazole.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Clarithromycin,Clarithromycin,8931110000016,Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với Clarithromycin.,Người có tiền sử dị ứng với kháng sinh cùng nhóm.
+Omeprazole,Omeprazole,8931110000017,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Esomeprazole,Esomeprazole,8931110000018,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Lansoprazole,Lansoprazole,8931110000019,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Ranitidine,Ranitidine,8931110000020,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Domperidone,Domperidone,8931110000021,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Simethicone,Simethicone,8931110000022,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Sucralfate,Sucralfate,8931110000023,"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản.",Không dùng cho người mẫn cảm với thành phần thuốc.
+Amlodipine,Amlodipine,8931110000024,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Amlodipine.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Losartan,Losartan,8931110000025,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Losartan.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Enalapril,Enalapril,8931110000026,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Enalapril.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Metoprolol,Metoprolol,8931110000027,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Metoprolol.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Atorvastatin,Atorvastatin,8931110000028,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Atorvastatin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Simvastatin,Simvastatin,8931110000029,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Simvastatin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Clopidogrel,Clopidogrel,8931110000030,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Clopidogrel.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Warfarin,Warfarin,8931110000031,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Warfarin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Metformin,Metformin,8931110000032,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Metformin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Glibenclamide,Glibenclamide,8931110000033,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Glibenclamide.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Gliclazide,Gliclazide,8931110000034,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Gliclazide.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Insulin,Insulin,8931110000035,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Insulin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Pioglitazone,Pioglitazone,8931110000036,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Pioglitazone.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Sitagliptin,Sitagliptin,8931110000037,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Sitagliptin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Salbutamol,Salbutamol,8931110000038,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Salbutamol.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Prednisolone,Prednisolone,8931110000039,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Prednisolone.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Cetirizine,Cetirizine,8931110000040,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Cetirizine.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Loratadine,Loratadine,8931110000041,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Loratadine.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Montelukast,Montelukast,8931110000042,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Montelukast.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Budesonide,Budesonide,8931110000043,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Budesonide.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Decolgen,Decolgen,8931110000044,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Decolgen.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Vitamin C,Vitamin C,8931110000045,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Vitamin C.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Vitamin D3,Vitamin D3,8931110000046,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Vitamin D3.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Vitamin B1,Vitamin B1,8931110000047,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Vitamin B1.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Vitamin B6,Vitamin B6,8931110000048,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Vitamin B6.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Vitamin B12,Vitamin B12,8931110000049,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Vitamin B12.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Acid Folic,Acid Folic,8931110000050,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Acid Folic.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Canxi,Canxi,8931110000051,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Canxi.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Sắt,Sắt,8931110000052,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Sắt.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Kẽm,Kẽm,8931110000053,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Kẽm.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Oresol,Oresol,8931110000054,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Oresol.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Smecta,Smecta,8931110000055,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Smecta.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Berberin,Berberin,8931110000056,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Berberin.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Hydrocortisone,Hydrocortisone,8931110000057,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Hydrocortisone.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Clotrimazole,Clotrimazole,8931110000058,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Clotrimazole.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Loperamide,Loperamide,8931110000059,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Loperamide.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+Bisacodyl,Bisacodyl,8931110000060,"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với Bisacodyl.",Đọc kỹ hướng dẫn sử dụng trước khi dùng.
