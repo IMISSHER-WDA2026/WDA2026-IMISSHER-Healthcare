@@ -1,16 +1,16 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import random
-import asyncio
+from deepface import DeepFace
+import cv2
+import numpy as np
 
-# 1. Khởi tạo App
+# Khởi tạo App
 app = FastAPI(
-    title="I.M.I.S.S.H.E.R - Face Recognition AI",
-    description="Microservice trích xuất đặc trưng khuôn mặt (Face Embeddings)",
-    version="1.0.0"
+    title="I.M.I.S.S.H.E.R - AI Face Recognition Core",
+    description="Microservice AI THẬT trích xuất đặc trưng khuôn mặt (Trực tiếp qua RAM)",
+    version="2.0.0"
 )
 
-# 2. Mở cổng CORS cho Frontend gọi thoải mái
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,23 +19,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Viết API nhận ảnh và trả về Vector
-@app.post("/api/v1/face/recognize", summary="Trích xuất Vector Khuôn mặt 512 chiều")
+@app.post("/api/v1/face/recognize", summary="Trích xuất Sinh trắc học Khuôn mặt (512 chiều)")
 async def recognize_face(file: UploadFile = File(..., description="Ảnh khuôn mặt nạn nhân (JPG/PNG)")):
-    """
-    Mock API: Giả lập thời gian AI xử lý ảnh và sinh ra Vector 512 chiều.
-    """
-    # Giả lập thời gian AI đọc ảnh mất khoảng 1 giây
-    await asyncio.sleep(1)
-    
-    # Sinh ra một mảng gồm 512 con số ngẫu nhiên (từ -1.0 đến 1.0) giống hệ thống FaceNet thật
-    dummy_vector = [round(random.uniform(-1.0, 1.0), 6) for _ in range(512)]
+    try:
+        # 1. ĐỌC ẢNH TRỰC TIẾP VÀO BỘ NHỚ RAM (Né hoàn toàn lỗi đường dẫn tiếng Việt)
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    return {
-        "status": "success",
-        "message": f"Đã quét và trích xuất thành công: {file.filename}",
-        "data": {
-            "dimensions": 512,
-            "vector": dummy_vector
+        if img is None:
+            raise ValueError("Không thể đọc được định dạng ảnh này.")
+
+        # 2. ĐƯA ẢNH TỪ RAM VÀO AI DEEPFACE XỬ LÝ
+        embeddings = DeepFace.represent(
+            img_path=img,               # Truyền thẳng mảng ảnh vào, không cần file path
+            model_name="Facenet512", 
+            enforce_detection=False     # Quét cả những ảnh hơi mờ/nghiêng
+        )
+        
+        # 3. LẤY KẾT QUẢ VECTOR
+        face_vector = embeddings[0]["embedding"]
+
+        return {
+            "status": "success",
+            "message": f"AI đã phân tích thành công: {file.filename}",
+            "data": {
+                "dimensions": len(face_vector),
+                "vector": face_vector
+            }
         }
-    }
+        
+    except Exception as e:
+        print(f"Lỗi chi tiết: {str(e)}") # In lỗi ra Terminal để dễ debug
+        raise HTTPException(status_code=500, detail=f"Lỗi AI khi quét khuôn mặt: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

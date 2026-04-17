@@ -1,4 +1,4 @@
-# 🚑 HỒ SƠ Y TẾ THÔNG MINH – I.M.I.S.S.H.E.R (Monorepo)
+# 🚑 HỒ SƠ Y TẾ THÔNG MINH – I.M.I.S.S.H.E.R
 
 **Đội thi:** IMISSHER | **Cuộc thi:** WebDev Adventure 2026 - Vòng 2
 

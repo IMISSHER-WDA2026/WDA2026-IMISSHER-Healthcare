@@ -21,9 +21,10 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-**Bước 2: Chạy Server**
+**Bước 2: Chạy Server AI**
 ```bash
-uvicorn main:app --reload --port 8001
+# Khởi chạy server bằng file main.py
+python main.py
 ```
 
 **Bước 3: Xem tài liệu và Test API**
