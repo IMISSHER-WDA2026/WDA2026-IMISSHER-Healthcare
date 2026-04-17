@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js" 
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./prisma/dev.db"
+}
+
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Mật khẩu clear
+  
+  //Lưu token thiết bị để gửi thông báo (Cơ chế đơn thiết bị)
+  fcmToken  String?  
+
+  schedules MedicationSchedule[] 
+
+  notifications Notification[]
+}
+
+model MedicationSchedule {
+  id           String   @id @default(uuid())
+  userId       String
+  medication   String   // Tên thuốc
+  timeToTake   DateTime // Giờ uống thuốc chính xác
+  
+  // 3. Cờ (Flags) phục vụ cho hệ thống Cronjob và App
+  isNotified   Boolean  @default(false) // Backend đã gửi push notification chưa?
+  isExpiredNotified Boolean @default(false) // NHẮC NHỞ LẦN 2 (QUÊN SAU 30P)
+  isTaken      Boolean  @default(false) // User đã bấm "Đã uống" trên App chưa?
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 4. Đánh index giúp Cronjob quét siêu tốc độ
+  @@index([timeToTake, isNotified])
+  notifications Notification[]
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  scheduleId String?
+  schedule   MedicationSchedule? @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  title     String
+  body      String
+  isRead    Boolean  @default(false) // Trạng thái chưa đọc/đã đọc
+  createdAt DateTime @default(now()) // Thời gian nhận
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  }
