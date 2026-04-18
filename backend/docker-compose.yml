@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  postgres-db:
+    # pgvector-enabled PostgreSQL image for face-vector experiments.
+    image: ankane/pgvector:latest
+    container_name: imissher_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: imissher_local_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
