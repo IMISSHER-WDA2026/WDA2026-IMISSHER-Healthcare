@@ -31,12 +31,12 @@ import { UsersModule } from './users/users.module';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL') || undefined,
 
-        // Tách ra thêm trong trường hợp URL không nhận diện đươck
-        host: configService.get<string>('DB_HOST') || 'db.wunmyjagiwljvxrsurxe.supabase.co',
-        port: Number(configService.get<string>('DB_PORT') || 5432),
-        username: configService.get<string>('DB_USERNAME') || undefined,
-        password: configService.get<string>('DB_PASSWORD') || '3RAxL9E.GG./B7',
-        database: configService.get<string>('DB_DATABASE') || undefined,
+        // // Split in case url not recognized
+        // host: configService.get<string>('DB_HOST') || 'db.wunmyjagiwljvxrsurxe.supabase.co',
+        // port: Number(configService.get<string>('DB_PORT') || 5432),
+        // username: configService.get<string>('DB_USERNAME') || 'postgres',
+        // password: configService.get<string>('DB_PASSWORD') || '3RAxL9E.GG./B7g',
+        // database: configService.get<string>('DB_DATABASE') || 'postgres',
         autoLoadEntities: true,
         synchronize: false,
         ssl: configService.get<string>('DATABASE_URL')

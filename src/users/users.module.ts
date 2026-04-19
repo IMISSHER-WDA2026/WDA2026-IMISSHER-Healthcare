@@ -1,4 +1,9 @@
 import { Module } from '@nestjs/common';
 
-@Module({})
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Profile } from './entities/profile.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Profile])],
+})
 export class UsersModule {}

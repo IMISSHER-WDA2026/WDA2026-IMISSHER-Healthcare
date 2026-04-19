@@ -11,23 +11,26 @@ export class SosService {
 		private readonly sosProfileRepo: Repository<SosProfile>,
 	) {}
 
-	async getSos(): Promise<SosResponseDto> {
-		const row = await this.sosProfileRepo
-			.createQueryBuilder('sos')
-			.innerJoin('profiles', 'profile', 'profile.id = sos.user_id')
-			.select([
-				'profile.full_name AS full_name',
-				'sos.blood_type AS blood_type',
-				'sos.allergies AS allergies',
-				'COALESCE(sos.emergency_phone, profile.phone_number) AS emergency_contact',
-			])
-			.orderBy('sos.updated_at', 'DESC')
-			.getRawOne<SosResponseDto>();
+	async getSos(userId: string): Promise<SosResponseDto> {
+		if (!userId) {
+			throw new NotFoundException('Vui lòng truyền user_id');
+		}
 
-		if (!row) {
+		const sosProfile = await this.sosProfileRepo.findOne({
+			where: { user_id: userId },
+			relations: ['profile'],
+			order: { updated_at: 'DESC' },
+		});
+
+		if (!sosProfile || !sosProfile.profile) {
 			throw new NotFoundException('Không tìm thấy thông tin SOS');
 		}
 
-		return row;
+		return {
+			full_name: sosProfile.profile.full_name,
+			blood_type: sosProfile.blood_type,
+			allergies: sosProfile.allergies,
+			emergency_contact: sosProfile.emergency_phone || sosProfile.profile.phone_number,
+		} as SosResponseDto;
 	}
 }

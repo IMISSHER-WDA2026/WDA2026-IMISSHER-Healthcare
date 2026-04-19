@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConsumeMedicineDto } from './dto/consume-medicine.dto';
 import { MedicinesService } from './medicines.service';
@@ -16,11 +16,11 @@ export class MedicinesController {
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách thuốc' })
-  findAll() { return this.service.findAll(); }
+  findAll(@Query('user_id') userId?: string) { return this.service.findAll(userId); }
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết một thuốc' })
-  findOne(@Param('id') id: string) { return this.service.findOne(id); }
+  findOne(@Param('id') id: string, @Query('user_id') userId?: string) { return this.service.findOne(id, userId); }
 
   @Put(':id')
   @ApiOperation({ summary: 'Cập nhật toàn bộ thuốc' })
@@ -32,9 +32,9 @@ export class MedicinesController {
 
   @Post('consume/:id')
   @ApiOperation({ summary: 'Trừ số lượng thuốc đã sử dụng' })
-  consume(@Param('id') id: string, @Body() dto: ConsumeMedicineDto) { return this.service.consume(id, dto); }
+  consume(@Param('id') id: string, @Body() dto: ConsumeMedicineDto, @Query('user_id') userId?: string) { return this.service.consume(id, dto, userId); }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa thuốc' })
-  remove(@Param('id') id: string) { return this.service.remove(id); }
+  remove(@Param('id') id: string, @Query('user_id') userId?: string) { return this.service.remove(id, userId); }
 }

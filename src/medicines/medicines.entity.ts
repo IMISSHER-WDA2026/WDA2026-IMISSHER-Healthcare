@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { MedicineMetadata } from './medicine-metadata.entity';
 
 @Entity('user_medicines')
 export class UserMedicine {
@@ -15,6 +16,10 @@ export class UserMedicine {
   @Column()
   medicine_id!: string;
 
+  @ManyToOne(() => MedicineMetadata, metadata => metadata.user_medicines)
+  @JoinColumn({ name: 'medicine_id' })
+  metadata!: MedicineMetadata;
+
   @ApiProperty({ example: 10, default: 1 })
   @Column({ default: 1 })
   quantity!: number;
@@ -24,7 +29,7 @@ export class UserMedicine {
   expiry_date!: string | null;
 
   @ApiPropertyOptional({ example: 'Uống sau khi ăn sáng', nullable: true })
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   custom_note!: string | null;
 
   @ApiProperty({ example: '2026-04-16T12:00:00.000Z' })

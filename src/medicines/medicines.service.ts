@@ -41,8 +41,15 @@ export class MedicinesService {
     return metadata.id;
   }
 
-  private async findOneEntity(id: string): Promise<UserMedicine> {
-    const medicine = await this.repo.findOne({ where: { id } });
+  private async findOneEntity(id: string, userId?: string): Promise<UserMedicine> {
+    const where: any = { id };
+    if (userId) {
+      where.user_id = userId;
+    }
+    const medicine = await this.repo.findOne({ 
+      where, 
+      relations: ['metadata'] 
+    });
 
     if (!medicine) {
       throw new NotFoundException('Không tìm thấy thuốc trong danh sách của người dùng');
@@ -51,24 +58,18 @@ export class MedicinesService {
     return medicine;
   }
 
-  private async toResponse(medicine: UserMedicine) {
-    const row = await this.repo
-      .createQueryBuilder('medicine')
-      .leftJoin('medicines_metadata', 'metadata', 'metadata.id = medicine.medicine_id')
-      .select([
-        'medicine.id AS id',
-        'medicine.user_id AS user_id',
-        'medicine.medicine_id AS medicine_id',
-        'metadata.name AS medicine_name',
-        'medicine.quantity AS quantity',
-        'medicine.expiry_date AS expiry_date',
-        'medicine.custom_note AS custom_note',
-        'medicine.added_at AS added_at',
-      ])
-      .where('medicine.id = :id', { id: medicine.id })
-      .getRawOne();
-
-    return row ?? medicine;
+  private toResponse(medicine: UserMedicine) {
+    return {
+      id: medicine.id,
+      user_id: medicine.user_id,
+      medicine_id: medicine.medicine_id,
+      medicine_name: medicine.metadata?.name,
+      barcode: medicine.metadata?.barcode,
+      quantity: medicine.quantity,
+      expiry_date: medicine.expiry_date,
+      custom_note: medicine.custom_note,
+      added_at: medicine.added_at,
+    };
   }
 
   async create(dto: CreateMedicineDto) {
@@ -81,34 +82,27 @@ export class MedicinesService {
     newRecord.custom_note = dto.custom_note ?? null;
 
     const saved = await this.repo.save(newRecord);
-    return this.toResponse(saved);
+    const medicine = await this.findOneEntity(saved.id, dto.user_id);
+    return this.toResponse(medicine);
   }
 
-  async findAll() {
-    return this.repo
-      .createQueryBuilder('medicine')
-      .leftJoin('medicines_metadata', 'metadata', 'metadata.id = medicine.medicine_id')
-      .select([
-        'medicine.id AS id',
-        'medicine.user_id AS user_id',
-        'medicine.medicine_id AS medicine_id',
-        'metadata.name AS medicine_name',
-        'medicine.quantity AS quantity',
-        'medicine.expiry_date AS expiry_date',
-        'medicine.custom_note AS custom_note',
-        'medicine.added_at AS added_at',
-      ])
-      .orderBy('medicine.added_at', 'DESC')
-      .getRawMany();
+  async findAll(userId?: string) {
+    const where = userId ? { user_id: userId } : {};
+    const medicines = await this.repo.find({
+      where,
+      relations: ['metadata'],
+      order: { added_at: 'DESC' },
+    });
+    return medicines.map(m => this.toResponse(m));
   }
 
-  async findOne(id: string) {
-    const medicine = await this.findOneEntity(id);
+  async findOne(id: string, userId?: string) {
+    const medicine = await this.findOneEntity(id, userId);
     return this.toResponse(medicine);
   }
 
   async update(id: string, dto: UpdateMedicineDto) {
-    const medicine = await this.findOneEntity(id);
+    const medicine = await this.findOneEntity(id, dto.user_id);
 
     if (dto.user_id) {
       medicine.user_id = dto.user_id;
@@ -134,14 +128,14 @@ export class MedicinesService {
     return this.toResponse(saved);
   }
 
-  async remove(id: string) {
-    const medicine = await this.findOneEntity(id);
+  async remove(id: string, userId?: string) {
+    const medicine = await this.findOneEntity(id, userId);
     await this.repo.remove(medicine);
     return { message: 'Xóa thuốc thành công', id };
   }
 
-  async consume(id: string, dto: ConsumeMedicineDto) {
-    const medicine = await this.findOneEntity(id);
+  async consume(id: string, dto: ConsumeMedicineDto, userId?: string) {
+    const medicine = await this.findOneEntity(id, userId);
 
     if (medicine.quantity < dto.amount) {
       throw new BadRequestException('Cảnh báo: Không đủ thuốc!');

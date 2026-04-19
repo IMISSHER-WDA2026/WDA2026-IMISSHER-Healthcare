@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Profile } from '../../users/entities/profile.entity';
 
 @Entity('sos_profiles')
 export class SosProfile {
@@ -10,6 +11,10 @@ export class SosProfile {
   @ApiProperty({ example: '1a7d2f2c-7fb4-4d6d-b66a-8e5d5a1f9b20' })
   @Column({ nullable: true })
   user_id!: string;
+
+  @ManyToOne(() => Profile)
+  @JoinColumn({ name: 'user_id' })
+  profile!: Profile;
 
   @ApiPropertyOptional({ example: 'O+', nullable: true })
   @Column({ nullable: true })

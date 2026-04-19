@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { SosResponseDto } from './dto/sos-response.dto';
 import { SosService } from './sos.service';
@@ -11,7 +11,7 @@ export class SosController {
   @Get()
   @ApiOperation({ summary: 'Lấy thông tin SOS của tôi' })
   @ApiOkResponse({ type: SosResponseDto })
-  getSos() {
-    return this.sosService.getSos();
+  getSos(@Query('user_id') userId: string) {
+    return this.sosService.getSos(userId);
   }
 }
