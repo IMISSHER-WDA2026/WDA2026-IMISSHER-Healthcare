@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { JsonPersistenceStore } from '../common/persistence/json-persistence.store';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateSosDto } from './dto/create-sos.dto';
 import { SosStatus, UpdateSosDto } from './dto/update-sos.dto';
 import type { SosEntity } from './entities/sos.entity';
+import { SosRecord } from './entities/sos-record.entity';
 
 interface SosFilters {
   userId?: string;
@@ -11,25 +13,15 @@ interface SosFilters {
 
 @Injectable()
 export class SosService {
-  private readonly incidents = new Map<number, SosEntity>();
-  private nextIncidentId: number;
-  private readonly store = new JsonPersistenceStore<SosEntity>('sos-incidents.json');
+  constructor(
+    @InjectRepository(SosRecord)
+    private readonly sosRepository: Repository<SosRecord>,
+  ) { }
 
-  constructor() {
-    const persistedIncidents = this.store.load();
-    for (const incident of persistedIncidents) {
-      this.incidents.set(incident.id, incident);
-    }
-
-    this.nextIncidentId = this.store.nextId(persistedIncidents);
-  }
-
-  create(createSosDto: CreateSosDto): SosEntity {
+  async create(createSosDto: CreateSosDto): Promise<SosEntity> {
     this.assertLocationConsistency(createSosDto.latitude, createSosDto.longitude);
 
-    const now = new Date().toISOString();
-    const incident: SosEntity = {
-      id: this.nextIncidentId,
+    const incident = this.sosRepository.create({
       userId: createSosDto.userId,
       triggerSource: createSosDto.triggerSource,
       status: SosStatus.OPEN,
@@ -37,81 +29,81 @@ export class SosService {
       longitude: createSosDto.longitude,
       note: createSosDto.note,
       responderPhone: createSosDto.responderPhone,
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
 
-    this.incidents.set(incident.id, incident);
-    this.nextIncidentId += 1;
-    this.persist();
-    return incident;
+    const savedIncident = await this.sosRepository.save(incident);
+    return this.toEntity(savedIncident);
   }
 
-  findAll(filters: SosFilters = {}): SosEntity[] {
-    return Array.from(this.incidents.values())
-      .filter((incident) => {
-        if (filters.userId && incident.userId !== filters.userId) {
-          return false;
-        }
+  async findAll(filters: SosFilters = {}): Promise<SosEntity[]> {
+    const query = this.sosRepository.createQueryBuilder('incident');
 
-        if (filters.status && incident.status !== filters.status) {
-          return false;
-        }
+    if (filters.userId) {
+      query.andWhere('incident.userId = :userId', { userId: filters.userId });
+    }
 
-        return true;
-      })
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    if (filters.status) {
+      query.andWhere('incident.status = :status', { status: filters.status });
+    }
+
+    const incidents = await query.orderBy('incident.createdAt', 'DESC').getMany();
+    return incidents.map((incident) => this.toEntity(incident));
   }
 
-  findActiveByUser(userId: string): SosEntity | null {
-    return (
-      this.findAll({ userId }).find(
-        (incident) => incident.status === SosStatus.OPEN || incident.status === SosStatus.ACKNOWLEDGED,
-      ) ?? null
-    );
+  async findActiveByUser(userId: string): Promise<SosEntity | null> {
+    const incident = await this.sosRepository.findOne({
+      where: {
+        userId,
+        status: In([SosStatus.OPEN, SosStatus.ACKNOWLEDGED]),
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    return incident ? this.toEntity(incident) : null;
   }
 
-  findOne(id: number): SosEntity {
-    const incident = this.incidents.get(id);
+  async findOne(id: number): Promise<SosEntity> {
+    const incident = await this.sosRepository.findOne({ where: { id } });
     if (!incident) {
       throw new NotFoundException(`SOS incident #${id} not found.`);
     }
 
-    return incident;
+    return this.toEntity(incident);
   }
 
-  update(id: number, updateSosDto: UpdateSosDto): SosEntity {
-    const incident = this.findOne(id);
+  async update(id: number, updateSosDto: UpdateSosDto): Promise<SosEntity> {
+    const incident = await this.sosRepository.findOne({ where: { id } });
+    if (!incident) {
+      throw new NotFoundException(`SOS incident #${id} not found.`);
+    }
+
     this.assertLocationConsistency(updateSosDto.latitude, updateSosDto.longitude);
 
-    const now = new Date().toISOString();
     const nextStatus = updateSosDto.status ?? incident.status;
-    const resolvedAt =
-      nextStatus === SosStatus.RESOLVED
-        ? updateSosDto.resolvedAt ?? incident.resolvedAt ?? now
-        : updateSosDto.resolvedAt ?? incident.resolvedAt;
 
-    const updated: SosEntity = {
-      ...incident,
-      ...updateSosDto,
-      status: nextStatus,
-      resolvedAt,
-      updatedAt: now,
-    };
-
-    if (updated.status !== SosStatus.RESOLVED && updateSosDto.resolutionNote) {
+    if (nextStatus !== SosStatus.RESOLVED && updateSosDto.resolutionNote) {
       throw new BadRequestException('resolutionNote can only be provided for resolved incidents.');
     }
 
-    this.incidents.set(id, updated);
-    this.persist();
-    return updated;
+    const resolvedAt =
+      nextStatus === SosStatus.RESOLVED
+        ? updateSosDto.resolvedAt ?? incident.resolvedAt?.toISOString() ?? new Date().toISOString()
+        : updateSosDto.resolvedAt ?? incident.resolvedAt;
+
+    const updated: SosRecord = {
+      ...incident,
+      ...updateSosDto,
+      status: nextStatus,
+      resolvedAt: resolvedAt ? new Date(resolvedAt) : null,
+    };
+
+    const saved = await this.sosRepository.save(updated);
+    return this.toEntity(saved);
   }
 
-  remove(id: number): { deleted: true } {
-    this.findOne(id);
-    this.incidents.delete(id);
-    this.persist();
+  async remove(id: number): Promise<{ deleted: true }> {
+    await this.findOne(id);
+    await this.sosRepository.delete({ id });
     return { deleted: true };
   }
 
@@ -121,7 +113,20 @@ export class SosService {
     }
   }
 
-  private persist() {
-    this.store.save(Array.from(this.incidents.values()));
+  private toEntity(record: SosRecord): SosEntity {
+    return {
+      id: record.id,
+      userId: record.userId,
+      triggerSource: record.triggerSource as CreateSosDto['triggerSource'],
+      status: record.status as SosStatus,
+      latitude: record.latitude ?? undefined,
+      longitude: record.longitude ?? undefined,
+      note: record.note ?? undefined,
+      responderPhone: record.responderPhone ?? undefined,
+      resolvedAt: record.resolvedAt?.toISOString(),
+      resolutionNote: record.resolutionNote ?? undefined,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    };
   }
 }

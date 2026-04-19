@@ -1,9 +1,33 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+    ArrayMaxSize,
+    IsArray,
+    IsOptional,
+    IsString,
+    MaxLength,
+    MinLength,
+    ValidateNested,
+} from 'class-validator';
 
 const trimText = ({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value;
+
+export class EmergencyContactDto {
+    @ApiPropertyOptional({ minLength: 2, maxLength: 120, example: 'Nguyen Van C' })
+    @Transform(trimText)
+    @IsString()
+    @MinLength(2)
+    @MaxLength(120)
+    name!: string;
+
+    @ApiPropertyOptional({ maxLength: 32, example: '+84987654321' })
+    @Transform(trimText)
+    @IsString()
+    @MinLength(3)
+    @MaxLength(32)
+    phone!: string;
+}
 
 export class UpdateAuthDto {
     @ApiPropertyOptional({ minLength: 2, maxLength: 120, example: 'Tran Thi B' })
@@ -55,5 +79,16 @@ export class UpdateAuthDto {
     @IsString()
     @MaxLength(32)
     emergencyContactPhone?: string;
+
+    @ApiPropertyOptional({
+        description: 'Danh sách người liên hệ khẩn cấp. Tối đa 5 liên hệ.',
+        type: [EmergencyContactDto],
+    })
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(5)
+    @ValidateNested({ each: true })
+    @Type(() => EmergencyContactDto)
+    emergencyContacts?: EmergencyContactDto[];
 }
 

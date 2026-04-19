@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MedicineMetadata, MedicinesService } from './medicines.service';
@@ -19,7 +20,7 @@ import { UpdateMedicineDto } from './dto/update-medicine.dto';
 export class MedicinesController {
   constructor(private readonly medicinesService: MedicinesService) { }
 
-  @ApiOperation({ summary: 'Tạo thuốc tùy chỉnh trong kho local backend.' })
+  @ApiOperation({ summary: 'Tạo thuốc tùy chỉnh trong kho thuốc người dùng.' })
   @Post()
   create(@Body() createMedicineDto: CreateMedicineDto) {
     return this.medicinesService.create(createMedicineDto);
@@ -27,16 +28,20 @@ export class MedicinesController {
 
   @ApiOperation({ summary: 'Lấy danh sách thuốc từ catalog + thuốc tùy chỉnh.' })
   @Get()
-  findAll(): MedicineMetadata[] {
-    return this.medicinesService.findAll();
+  findAll(
+    @Query('ownerId') ownerId?: string,
+    @Query('mineOnly') mineOnlyRaw?: string,
+  ): Promise<MedicineMetadata[]> {
+    const mineOnly = mineOnlyRaw === 'true';
+    return this.medicinesService.findAll({ ownerId, mineOnly });
   }
 
   @ApiOperation({ summary: 'Tra cứu metadata thuốc theo mã vạch.' })
   @ApiParam({ name: 'barcode', description: 'Mã vạch thuốc.' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy metadata mã vạch.' })
   @Get('barcode/:barcode')
-  findByBarcode(@Param('barcode') barcode: string): MedicineMetadata {
-    const medicine = this.medicinesService.findByBarcode(barcode);
+  async findByBarcode(@Param('barcode') barcode: string): Promise<MedicineMetadata> {
+    const medicine = await this.medicinesService.findByBarcode(barcode);
     if (!medicine) {
       throw new NotFoundException('Medicine metadata not found for barcode.');
     }

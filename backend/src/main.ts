@@ -11,7 +11,12 @@ async function bootstrap() {
   const port = Number.isNaN(parsedPort) ? 3000 : parsedPort;
   const corsOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean)
-    : true;
+    : [];
+
+  const allowAllOrigins =
+    corsOrigins.length === 0 ||
+    corsOrigins.includes('*') ||
+    corsOrigins.includes('all');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -31,8 +36,8 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.enableCors({
-    origin: corsOrigins,
-    credentials: true,
+    origin: allowAllOrigins ? true : corsOrigins,
+    credentials: !allowAllOrigins,
   });
 
   const config = new DocumentBuilder()

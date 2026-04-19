@@ -30,6 +30,6 @@ flutter build apk --debug --dart-define=IMISSHER_API_BASE_URL=http://10.0.2.2:30
 - Auth (register/login)
 - Profile and medical info updates
 - SOS trigger flow
-- Medicine lookup/list
+- Medicine lookup/list + add custom medicine
 - Chatbot integration
-- Vietnamese/English UI
+- Vietnamese/English UI with refreshed visual design

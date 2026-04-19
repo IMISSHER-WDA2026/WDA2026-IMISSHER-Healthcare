@@ -1,11 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
-type WithNumericId = {
-    id: number;
-};
-
-export class JsonPersistenceStore<T extends WithNumericId> {
+export class JsonPersistenceStore<T> {
     private readonly persistenceEnabled: boolean;
     private readonly filePath: string;
 
@@ -55,7 +51,7 @@ export class JsonPersistenceStore<T extends WithNumericId> {
         writeFileSync(this.filePath, JSON.stringify(items, null, 2), 'utf8');
     }
 
-    nextId(items: T[]): number {
+    nextId(items: Array<{ id: number }>): number {
         if (items.length === 0) {
             return 1;
         }

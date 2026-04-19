@@ -14,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    validate(payload: AuthTokenPayload): AuthTokenPayload {
+    async validate(payload: AuthTokenPayload): Promise<AuthTokenPayload> {
         return this.authService.validateUserByPayload(payload);
     }
 }
