@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { UploadsService } from './uploads.service';
 import { CreateUploadDto } from './dto/create-upload.dto';
 import { UploadCategory } from './dto/create-upload.dto';
