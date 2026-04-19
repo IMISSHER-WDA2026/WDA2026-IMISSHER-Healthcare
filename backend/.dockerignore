@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.runtime-data
+npm-debug.log*
+.DS_Store
+.git
+.gitignore

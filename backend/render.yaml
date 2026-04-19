@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: imissher-backend
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api-docs
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: TYPEORM_SYNCHRONIZE
+        value: "true"
+      - key: DB_SSL
+        value: "true"
+      - key: CORS_ORIGIN
+        value: https://your-sos-web.vercel.app
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        sync: false
+      - key: FACE_RECOGNITION_API_URL
+        value: https://your-ai-service.example.com/api/v1/face/recognize
+      - key: FACE_RECOGNITION_MATCH_THRESHOLD
+        value: "0.82"
+      - key: IMISSHER_TEST_ACCOUNT_EMAIL
+        value: test@imissher.dev
+      - key: IMISSHER_TEST_ACCOUNT_PASSWORD
+        value: Test@123456
+      - key: IMISSHER_TEST_ACCOUNT_FULL_NAME
+        value: Tai Khoan Test IMISSHER

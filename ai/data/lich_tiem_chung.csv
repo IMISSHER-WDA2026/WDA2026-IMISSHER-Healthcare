@@ -1,0 +1,55 @@
+﻿vaccine_name;disease;min_age_months;max_age_months;notes
+Vắc xin BCG;Bệnh Lao;0;1;Tiêm 1 liều duy nhất trong vòng 1 tháng sau khi sinh (càng sớm càng tốt).
+Vắc xin Viêm gan B (Liều sơ sinh);Viêm gan B;0;1;Tiêm 1 liều trong vòng 24 giờ sau sinh.
+Vắc xin Kháng thể đơn dòng RSV;Viêm hô hấp cấp do virus RSV;0;8;Tiêm 1 liều trong những tháng đầu đời để bảo vệ trẻ sơ sinh.
+Vắc xin 6 trong 1 / 5 trong 1 (Liều 1);Bạch hầu, Ho gà, Uốn ván, Bại liệt, Viêm gan B, Hib;2;3;Tiêm mũi 1 khi trẻ đủ 2 tháng tuổi.
+Vắc xin bại liệt OPV/IPV (Liều 1);Bệnh Bại liệt;2;3;Uống (OPV) hoặc tiêm (IPV) mũi 1 lúc 2 tháng tuổi.
+Vắc xin Rota (Liều 1);Tiêu chảy cấp do Rotavirus;2;3;Uống liều 1 lúc 2 tháng tuổi. Bắt đầu áp dụng trong TCMR.
+Vắc xin Phế cầu 10/13/20 tuýp (Liều 1);Viêm phổi, Viêm màng não, Viêm tai giữa do Phế cầu;2;3;Tiêm mũi 1 (Synflorix/Prevenar 13/Vaxneuvance) lúc 2 tháng.
+Vắc xin Não mô cầu B (Bexsero) (Liều 1);Viêm màng não do não mô cầu B;2;3;Tiêm mũi 1 lúc 2 tháng tuổi.
+Vắc xin 6 trong 1 / 5 trong 1 (Liều 2);Bạch hầu, Ho gà, Uốn ván, Bại liệt, Viêm gan B, Hib;3;4;Tiêm mũi 2 khi trẻ đủ 3 tháng tuổi.
+Vắc xin bại liệt OPV/IPV (Liều 2);Bệnh Bại liệt;3;4;Uống (OPV) hoặc tiêm (IPV) mũi 2 lúc 3 tháng tuổi.
+Vắc xin Rota (Liều 2);Tiêu chảy cấp do Rotavirus;3;4;Uống liều 2 lúc 3 tháng tuổi. Vắc xin Rotarix hoàn thành ở liều này. Rotateq uống thêm liều 3.
+Vắc xin Não mô cầu B (Bexsero) (Liều 2);Viêm màng não do não mô cầu B;3;4;Tiêm mũi 2 lúc 3 tháng tuổi (cách mũi 1 tối thiểu 1 tháng).
+Vắc xin 6 trong 1 / 5 trong 1 (Liều 3);Bạch hầu, Ho gà, Uốn ván, Bại liệt, Viêm gan B, Hib;4;5;Tiêm mũi 3 khi trẻ đủ 4 tháng tuổi.
+Vắc xin bại liệt OPV/IPV (Liều 3);Bệnh Bại liệt;4;5;Uống (OPV) hoặc tiêm (IPV) mũi 3 lúc 4 tháng tuổi.
+Vắc xin Phế cầu 10/13/20 tuýp (Liều 2);Viêm phổi, Viêm màng não, Viêm tai giữa do Phế cầu;4;5;Tiêm mũi 2 lúc 4 tháng tuổi.
+Vắc xin bại liệt tiêm (IPV TCMR mũi 1);Bệnh Bại liệt;5;6;Tiêm 1 mũi vắc xin bại liệt IPV lúc 5 tháng tuổi (Theo TCMR 2024).
+Vắc xin Phế cầu 10/13/20 tuýp (Liều 3);Viêm phổi, Viêm màng não, Viêm tai giữa do Phế cầu;6;7;Tiêm mũi 3 lúc 6 tháng tuổi.
+Vắc xin Cúm mùa (Liều 1);Cúm mùa (Các chủng cúm A và B);6;7;Tiêm mũi 1 cho trẻ từ 6 tháng tuổi.
+Vắc xin Cúm mùa (Liều 2);Cúm mùa (Các chủng cúm A và B);7;8;Tiêm mũi 2 (Cách mũi 1 ít nhất 1 tháng đối với trẻ tiêm lần đầu).
+Vắc xin Não mô cầu BC (VA-MENGOC-BC);Viêm màng não do não mô cầu B, C;6;10;Tiêm 2 mũi, mũi 2 cách mũi 1 từ 6-8 tuần. Dành cho trẻ từ 6 tháng tuổi.
+Vắc xin Sởi đơn (MVVac);Sởi;9;10;Tiêm mũi 1 khi trẻ tròn 9 tháng tuổi. Có thể tiêm lúc 6 tháng nếu có dịch.
+Vắc xin bại liệt tiêm (IPV TCMR mũi 2);Bệnh Bại liệt;9;10;Tiêm vắc xin bại liệt IPV mũi 2 lúc 9 tháng tuổi (Cập nhật TCMR 2024).
+Vắc xin Não mô cầu ACYW (Menactra/MenQuadfi) (Liều 1);Viêm màng não do não mô cầu A, C, Y, W-135;9;12;Tiêm mũi 1 cho trẻ từ 9 tháng tuổi.
+Vắc xin Viêm não Nhật Bản (Imojev) (Liều 1);Viêm não Nhật Bản;9;12;Tiêm mũi 1 lúc 9 tháng tuổi. (Mũi 2 nhắc lại sau 1-2 năm).
+Vắc xin Sởi - Quai bị - Rubella (MMR);Sởi, Quai bị, Rubella;12;15;Tiêm mũi 1 khi trẻ từ 12 tháng tuổi.
+Vắc xin Thủy đậu;Thủy đậu;12;15;Tiêm mũi 1 lúc 12 tháng tuổi. Mũi 2 nhắc lại cách 1-3 tháng tùy loại.
+Vắc xin Viêm não Nhật Bản B (Jevax) (Cơ bản);Viêm não Nhật Bản;12;15;Mũi 1 lúc 1 tuổi. Mũi 2 cách 1-2 tuần. Mũi 3 cách 1 năm.
+Vắc xin Viêm gan A (Liều 1);Viêm gan A;12;15;Tiêm mũi 1 lúc 12 tháng tuổi.
+Vắc xin Viêm gan A & B (Twinrix);Viêm gan A và Viêm gan B;12;720;Trẻ 1-15 tuổi tiêm 2 mũi cách 6 tháng. Từ 16 tuổi trở lên tiêm 3 mũi (0-1-6).
+Vắc xin 6 trong 1 / 5 trong 1 / DPT (Liều nhắc);Bạch hầu, Ho gà, Uốn ván, Bại liệt, Viêm gan B, Hib;15;24;Tiêm mũi 4 nhắc lại. Thường chọn mốc 18 tháng tuổi.
+Vắc xin Sởi - Rubella (MR);Sởi, Rubella;18;24;Tiêm mũi nhắc lại trong chương trình TCMR lúc 18 tháng tuổi.
+Vắc xin Phế cầu 10/13/20 tuýp (Liều nhắc);Viêm phổi, Viêm màng não, Viêm tai giữa do Phế cầu;11;24;Tiêm mũi nhắc lại. Thường khoảng 11-15 tháng hoặc năm tuổi thứ 2.
+Vắc xin Não mô cầu ACYW (Menactra) (Liều 2);Viêm màng não do não mô cầu A, C, Y, W-135;12;15;Tiêm mũi 2 (cách mũi 1 ít nhất 3 tháng đối với trẻ tiêm mũi 1 lúc 9-23 tháng).
+Vắc xin Viêm gan A (Liều 2);Viêm gan A;18;36;Tiêm mũi 2 (cách mũi 1 từ 6-12 tháng hoặc đến 36 tháng tùy loại).
+Vắc xin Não mô cầu AC (Meningo AC);Viêm màng não do não mô cầu A, C;24;36;Tiêm 1 liều lúc 2 tuổi trở lên. Nhắc lại mỗi 3 năm.
+Vắc xin Thương hàn;Thương hàn;24;36;Tiêm 1 liều lúc 2 tuổi (24 tháng). Nhắc lại mỗi 3 năm.
+Vắc xin Bệnh Tả;Bệnh Tả;24;36;Uống 2 liều cách nhau 14 ngày (dành cho trẻ ở vùng có nguy cơ dịch).
+Vắc xin Phế cầu 23 tuýp (Pneumovax 23);Viêm phổi do 23 tuýp Phế cầu;24;1200;Tiêm 1 mũi cho người từ 2 tuổi trở lên. Nhắc lại sau 3-5 năm nếu có bệnh nền.
+Vắc xin Sốt xuất huyết;Sốt xuất huyết;48;720;Tiêm 2 mũi cách nhau 3 tháng. Dành cho trẻ từ 4 tuổi và người lớn.
+Vắc xin Sởi - Quai bị - Rubella (Liều nhắc);Sởi, Quai bị, Rubella;48;72;Tiêm mũi 2 nhắc lại lúc 4-6 tuổi.
+Vắc xin 4 trong 1 / 3 trong 1 (Liều nhắc);Bạch hầu, Ho gà, Uốn ván, Bại liệt;48;72;Tiêm nhắc lại lúc 4-6 tuổi (Tetraxim/Adacel/Boostrix).
+Vắc xin Viêm não Nhật Bản B (Jevax) (Nhắc lại);Viêm não Nhật Bản;60;180;Tiêm mũi nhắc lúc 5 tuổi, sau đó nhắc lại mỗi 3 năm một lần đến 15 tuổi.
+Vắc xin Uốn ván - Bạch hầu (Td);Bạch hầu, Uốn ván;84;96;Tiêm nhắc 1 mũi cho trẻ 7 tuổi (Theo chương trình TCMR mới cập nhật).
+Vắc xin Sốt vàng;Sốt vàng da;108;1200;Tiêm 1 mũi, nhắc lại sau 10 năm. Bắt buộc cho người đi du lịch châu Phi/Mỹ Latinh.
+Vắc xin HPV (Gardasil 4 / Gardasil 9);Ung thư cổ tử cung, sùi mào gà do HPV;108;540;Dành cho nam và nữ từ 9-45 tuổi. Phác đồ 2 hoặc 3 mũi tùy độ tuổi bắt đầu tiêm.
+Vắc xin HPV (Cervarix);Ung thư cổ tử cung do HPV 16, 18;120;300;Dành cho nữ từ 10-25 tuổi. Phác đồ 3 mũi (0-1-6).
+Vắc xin Cúm mùa (Người lớn/Thai phụ);Cúm mùa;108;1200;Tiêm 1 mũi, nhắc lại hàng năm. Ưu tiên phụ nữ mang thai để truyền kháng thể cho con.
+Vắc xin Bạch hầu - Ho gà - Uốn ván (Phụ nữ mang thai);Bạch hầu, Ho gà, Uốn ván;180;600;Tiêm 1 mũi (Boostrix/Adacel) vào 3 tháng giữa hoặc cuối thai kỳ (tuần 27-36).
+Vắc xin RSV (Phụ nữ mang thai);Viêm hô hấp cấp do virus RSV ở trẻ sơ sinh;180;600;Tiêm 1 mũi từ tuần thai 24-36 để truyền kháng thể bảo vệ thai nhi.
+Vắc xin Uốn ván đơn thuần (Thai phụ/Người lớn);Uốn ván;180;1200;Phác đồ 3-5 mũi bảo vệ trọn đời. Thai phụ tiêm mũi 1 khi có thai, mũi 2 trước sinh 1 tháng.
+Vắc xin Viêm gan B (Người lớn);Viêm gan B;180;1200;Tiêm 3 mũi (0-1-6) hoặc 4 mũi (0-1-2-12). Cần xét nghiệm HBsAg và Anti-HBs trước tiêm.
+Vắc xin Dại;Bệnh Dại;0;1200;Tiêm dự phòng 3 mũi. Tiêm bắt buộc khi phơi nhiễm (bị chó/mèo cắn) 2-5 mũi tùy phác đồ.
+Vắc xin Zona thần kinh (Giời leo);Zona thần kinh;600;1200;Tiêm 2 mũi cách nhau 1-2 tháng. Khuyến cáo cho người từ 50 tuổi hoặc có bệnh nền.
+Vắc xin Bạch hầu - Ho gà - Uốn ván (Nhắc lại người lớn);Bạch hầu, Ho gà, Uốn ván;120;1200;Tiêm nhắc lại mỗi 10 năm một lần trong suốt cuộc đời để duy trì kháng thể.
