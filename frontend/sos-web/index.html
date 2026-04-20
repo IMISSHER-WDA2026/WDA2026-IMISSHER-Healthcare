@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Healthcare SOS Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="layout">
+        <section class="hero card">
+            <p class="eyebrow">Healthcare</p>
+            <h1>SOS Web Console</h1>
+            <p>
+                Separate web workflow for SOS response operations. Trigger incidents,
+                inspect latest records, and quickly test backend behavior.
+            </p>
+        </section>
+
+        <section class="controls card">
+            <h2>Connection</h2>
+            <label>
+                API Base URL
+                <input id="apiBaseUrl" type="url" value="http://localhost:3000" />
+            </label>
+
+            <h2>Create SOS Incident</h2>
+            <form id="createForm">
+                <label>
+                    User ID
+                    <input id="userId" type="text" placeholder="user-uuid" required />
+                </label>
+
+                <label>
+                    Trigger Source
+                    <select id="triggerSource">
+                        <option value="button">button</option>
+                        <option value="voice">voice</option>
+                        <option value="wearable">wearable</option>
+                    </select>
+                </label>
+
+                <label>
+                    Note
+                    <textarea id="note" rows="3" placeholder="Situation note..."></textarea>
+                </label>
+
+                <button class="btn btn-danger" type="submit">Send SOS</button>
+            </form>
+
+            <p id="status" class="status" aria-live="polite"></p>
+        </section>
+
+        <section class="incidents card">
+            <div class="incidents-header">
+                <h2>Latest Incidents</h2>
+                <button id="refreshBtn" class="btn btn-secondary" type="button">Refresh</button>
+            </div>
+            <ul id="incidentList" class="incident-list"></ul>
+        </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
