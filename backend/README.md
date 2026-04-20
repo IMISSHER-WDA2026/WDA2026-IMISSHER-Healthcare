@@ -1,4 +1,4 @@
-# IMISSHER Backend
+# Healthcare Backend
 
 NestJS API for authentication, user profile, SOS, medicines, chatbot, uploads, notifications, health metrics, and face-recognition proxy.
 
@@ -18,9 +18,9 @@ docker compose up --build
 
 This starts:
 
-- `imissher_backend` at http://localhost:3000
-- `imissher_ai` at http://localhost:8001
-- `imissher_postgres` at localhost:5432
+- `healthcare_backend` at http://localhost:3000
+- `healthcare_ai` at http://localhost:8001
+- `healthcare_postgres` at localhost:5432
 
 Backend core data (auth, SOS, custom medicines) is persisted in PostgreSQL.
 Runtime JSON is still used by non-critical modules that have not been migrated yet.
@@ -61,16 +61,33 @@ See [.env.example](.env.example) for full list.
 
 At startup, backend auto-creates a test account if it does not exist yet:
 
-- Email: `test@imissher.dev`
+- Email: `test@healthcare.dev`
 - Password: `Test@123456`
 
 You can override these values using:
 
-- `IMISSHER_TEST_ACCOUNT_EMAIL`
-- `IMISSHER_TEST_ACCOUNT_PASSWORD`
-- `IMISSHER_TEST_ACCOUNT_FULL_NAME`
+- `HEALTHCARE_TEST_ACCOUNT_EMAIL`
+- `HEALTHCARE_TEST_ACCOUNT_PASSWORD`
+- `HEALTHCARE_TEST_ACCOUNT_FULL_NAME`
 
 ## Face Recognition Dependency
 
 Set FACE_RECOGNITION_API_URL in .env to the AI service endpoint, default:
 http://localhost:8001/api/v1/face/recognize
+
+## Direct Hugging Face Spaces Integration
+
+Use two separate Hugging Face Spaces:
+
+1. Face recognition space
+2. RAG answering space
+
+Recommended environment mapping:
+
+- FACE_RECOGNITION_API_URL=https://<your-face-space>.hf.space/api/v1/face/recognize
+- FACE_RECOGNITION_API_TOKEN=<optional>
+- FACE_RECOGNITION_REQUEST_MODE=multipart
+- RAG_MODEL_API_URL=https://<your-rag-space>.hf.space/api/v1/rag/answer
+- RAG_MODEL_API_TOKEN=<optional>
+
+Backend now handles proxying requests to both spaces directly, so no separate AI proxy service is required in production.

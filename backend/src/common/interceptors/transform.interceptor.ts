@@ -15,8 +15,7 @@ export interface Response<T> {
 
 @Injectable()
 export class TransformInterceptor<T>
-  implements NestInterceptor<T, Response<T>>
-{
+  implements NestInterceptor<T, Response<T>> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -24,7 +23,7 @@ export class TransformInterceptor<T>
     return next.handle().pipe(
       map((data) => ({
         statusCode: context.switchToHttp().getResponse().statusCode,
-        message: data?.message || 'Thành công',
+        message: data?.message || 'Success',
         data: data?.result !== undefined ? data.result : data,
       })),
     );

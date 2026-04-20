@@ -12,16 +12,14 @@ import { UploadsModule } from './uploads/uploads.module';
 import { SosModule } from './sos/sos.module';
 import { MedicinesModule } from './medicines/medicines.module';
 import { UsersModule } from './users/users.module';
+import { resolveDatabaseUrl } from './common/config/runtime-security.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        const databaseUrl =
-          process.env.DATABASE_URL?.trim() ||
-          process.env.SUPABASE_DB_URL?.trim() ||
-          'postgres://postgres:password123@localhost:5432/imissher_local_db';
+        const databaseUrl = resolveDatabaseUrl();
 
         const forceSsl = process.env.DB_SSL === 'true';
         const disableSsl = process.env.DB_SSL === 'false';

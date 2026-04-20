@@ -7,10 +7,10 @@ const trimText = ({ value }: { value: unknown }) =>
 
 export class ChatRequestDto {
     @ApiProperty({
-        description: 'Câu hỏi của người dùng gửi tới chatbot.',
+        description: 'User question sent to the chatbot.',
         minLength: 2,
         maxLength: 2000,
-        example: 'Tôi bị đau đầu và chóng mặt thì nên làm gì?',
+        example: 'I have a headache and dizziness. What should I do?',
     })
     @Transform(trimText)
     @IsString()

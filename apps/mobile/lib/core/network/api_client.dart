@@ -426,7 +426,7 @@ class ApiClient {
 
     throw ApiException(
       'Unable to connect to backend. Tried: ${failedConnectionUris.join(', ')}. '
-      'If you run on a physical device, set --dart-define=IMISSHER_API_BASE_URL=http://<your-lan-ip>:3000.',
+      'If you run on a physical device, set --dart-define=HEALTHCARE_API_BASE_URL=http://<your-lan-ip>:3000.',
     );
   }
 

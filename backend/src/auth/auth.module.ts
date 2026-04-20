@@ -7,13 +7,14 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { User } from '../users/entities/user.entity';
+import { resolveJwtSecret } from '../common/config/runtime-security.config';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'imissher-dev-secret',
+      secret: resolveJwtSecret(),
       signOptions: {
         expiresIn: (process.env.JWT_EXPIRES_IN as StringValue) || '7d',
       },

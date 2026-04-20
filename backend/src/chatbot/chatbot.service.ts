@@ -16,6 +16,15 @@ export interface ChatbotReply {
 @Injectable()
 export class ChatbotService {
   private readonly knowledgeBase: KnowledgeEntry[] = [];
+  private readonly ragEndpoint =
+    process.env.RAG_MODEL_API_URL?.trim() ||
+    process.env.CHAT_MODEL_API_URL?.trim() ||
+    '';
+  private readonly ragApiToken =
+    process.env.RAG_MODEL_API_TOKEN?.trim() ||
+    process.env.CHAT_MODEL_API_KEY?.trim() ||
+    '';
+  private readonly ragTimeoutMs = this.parseTimeout(process.env.RAG_MODEL_TIMEOUT_MS);
 
   constructor() {
     this.loadKnowledgeBase();
@@ -98,46 +107,128 @@ export class ChatbotService {
     message: string,
     contexts: KnowledgeEntry[],
   ): Promise<string | null> {
-    const endpoint = process.env.CHAT_MODEL_API_URL;
-    const apiKey = process.env.CHAT_MODEL_API_KEY;
-
-    if (!endpoint) {
+    if (!this.ragEndpoint) {
       return null;
     }
 
+    const controller = new AbortController();
+    const timeoutHandle = setTimeout(() => controller.abort(), this.ragTimeoutMs);
+
+    const requestBody = {
+      message,
+      query: message,
+      question: message,
+      input: message,
+      contexts,
+      instruction:
+        'Answer in Vietnamese, keep medical advice safe and include emergency recommendation when needed.',
+    };
+
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch(this.ragEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+          ...(this.ragApiToken ? { Authorization: `Bearer ${this.ragApiToken}` } : {}),
         },
-        body: JSON.stringify({
-          message,
-          contexts,
-          instruction:
-            'Answer in Vietnamese, keep medical advice safe and include emergency recommendation when needed.',
-        }),
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
         return null;
       }
 
-      const payload = (await response.json()) as {
-        answer?: string;
-        output?: string;
-        text?: string;
-      };
+      const rawText = await response.text();
+      if (!rawText.trim()) {
+        return null;
+      }
 
-      return payload.answer || payload.output || payload.text || null;
+      try {
+        const parsedPayload = JSON.parse(rawText) as unknown;
+        return this.extractCloudAnswer(parsedPayload);
+      } catch {
+        return rawText.trim();
+      }
     } catch {
       return null;
+    } finally {
+      clearTimeout(timeoutHandle);
     }
   }
 
+  private extractCloudAnswer(payload: unknown): string | null {
+    if (typeof payload === 'string') {
+      const trimmed = payload.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+
+    if (Array.isArray(payload)) {
+      for (const item of payload) {
+        const candidate = this.extractCloudAnswer(item);
+        if (candidate) {
+          return candidate;
+        }
+      }
+      return null;
+    }
+
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const objectPayload = payload as Record<string, unknown>;
+    const directFields = [
+      objectPayload.answer,
+      objectPayload.output,
+      objectPayload.text,
+      objectPayload.generated_text,
+      objectPayload.response,
+      objectPayload.result,
+    ];
+
+    for (const field of directFields) {
+      const candidate = this.extractCloudAnswer(field);
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    const dataPayload = objectPayload.data;
+    const dataCandidate = this.extractCloudAnswer(dataPayload);
+    if (dataCandidate) {
+      return dataCandidate;
+    }
+
+    const choicesPayload = objectPayload.choices;
+    if (Array.isArray(choicesPayload) && choicesPayload.length > 0) {
+      const firstChoice = choicesPayload[0] as Record<string, unknown>;
+      const messagePayload = firstChoice?.message as Record<string, unknown> | undefined;
+      const contentCandidate = this.extractCloudAnswer(messagePayload?.content);
+      if (contentCandidate) {
+        return contentCandidate;
+      }
+
+      const textCandidate = this.extractCloudAnswer(firstChoice?.text);
+      if (textCandidate) {
+        return textCandidate;
+      }
+    }
+
+    return null;
+  }
+
+  private parseTimeout(rawTimeout: string | undefined): number {
+    const value = Number.parseInt(rawTimeout ?? '', 10);
+    if (!Number.isFinite(value)) {
+      return 45_000;
+    }
+
+    return Math.min(Math.max(value, 3_000), 180_000);
+  }
+
   private loadKnowledgeBase() {
-    const filePath = this.resolveDataFile('cam_nang_so_cuu.csv');
+    const filePath = this.resolveDataFile('first_aid_knowledge.csv');
     if (!filePath) {
       return;
     }

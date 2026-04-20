@@ -168,7 +168,7 @@ export class MedicinesService {
   }
 
   private loadMedicineCatalog() {
-    const filePath = this.resolveDataFile('Du_lieu_tu_thuoc_IMISSHER.csv');
+    const filePath = this.resolveDataFile('healthcare_medicine_catalog.csv');
     if (!filePath) {
       return;
     }
@@ -199,12 +199,12 @@ export class MedicinesService {
   }
 
   private resolveDataFile(fileName: string): string | null {
-    const configuredDataDir = process.env.IMISSHER_MEDICINE_DATA_DIR?.trim();
+    const configuredDataDir = process.env.HEALTHCARE_MEDICINE_DATA_DIR?.trim();
     const candidates = [
       configuredDataDir ? resolve(configuredDataDir, fileName) : null,
       resolve(process.cwd(), '../ai/data', fileName),
       resolve(process.cwd(), 'ai/data', fileName),
-      resolve('/opt/imissher-ai-data', fileName),
+      resolve('/opt/healthcare-ai-data', fileName),
     ];
 
     for (const candidate of candidates) {

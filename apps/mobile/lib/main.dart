@@ -6,22 +6,22 @@ import 'core/localization/app_strings.dart';
 import 'core/network/api_client.dart';
 
 const String apiBaseUrl = String.fromEnvironment(
-  'IMISSHER_API_BASE_URL',
+  'HEALTHCARE_API_BASE_URL',
   defaultValue: 'http://10.0.2.2:3000',
 );
 
 void main() {
-  runApp(const ImissherApp());
+  runApp(const HealthcareApp());
 }
 
-class ImissherApp extends StatefulWidget {
-  const ImissherApp({super.key});
+class HealthcareApp extends StatefulWidget {
+  const HealthcareApp({super.key});
 
   @override
-  State<ImissherApp> createState() => _ImissherAppState();
+  State<HealthcareApp> createState() => _HealthcareAppState();
 }
 
-class _ImissherAppState extends State<ImissherApp> {
+class _HealthcareAppState extends State<HealthcareApp> {
   final ApiClient _apiClient = ApiClient(baseUrl: apiBaseUrl);
   AppLanguage _language = AppLanguage.vi;
   AuthSession? _session;
@@ -240,10 +240,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 8),
                   Center(
                     child: Image.asset(
-                      'assets/design/imissher_logo.png',
+                      'assets/design/healthcare_logo.png',
                       height: 72,
                       errorBuilder: (_, error, stackTrace) => Text(
-                        'I.M.I.S.S.H.E.R',
+                        'HEALTHCARE',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
                               fontWeight: FontWeight.w800,
@@ -674,7 +674,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Image.asset(
-                'assets/design/imissher_logo.png',
+                'assets/design/healthcare_logo.png',
                 height: 34,
                 errorBuilder: (_, error, stackTrace) => const SizedBox.shrink(),
               ),

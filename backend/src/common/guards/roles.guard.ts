@@ -5,24 +5,24 @@ import { UserRole } from '../../users/entities/user.entity';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-    
-    // Nếu API không dán nhãn @Roles, cho phép qua
+
+    // Allow access when the route does not declare role requirements.
     if (!requiredRoles) {
       return true;
     }
 
     const { user } = context.switchToHttp().getRequest();
-    
-    // Kiểm tra xem User có đăng nhập và có đúng quyền không
+
+    // Ensure the authenticated user has at least one required role.
     if (!user || !requiredRoles.some((role) => user.role === role)) {
-      throw new ForbiddenException('Bạn không có quyền truy cập chức năng này!');
+      throw new ForbiddenException('You do not have permission to access this resource.');
     }
 
     return true;

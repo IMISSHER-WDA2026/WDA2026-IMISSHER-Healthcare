@@ -11,7 +11,7 @@ class AppStrings {
 
   static const Map<AppLanguage, Map<String, String>> _dictionary = {
     AppLanguage.vi: {
-      'app.title': 'IMISSHER Healthcare',
+      'app.title': 'Healthcare',
       'app.subtitle': 'Y tế thông minh cho tình huống khẩn cấp',
       'auth.title': 'Đăng nhập / Đăng ký',
       'auth.subtitle': 'Theo dõi thuốc, hồ sơ y tế và SOS trong một ứng dụng.',
@@ -42,7 +42,7 @@ class AppStrings {
       'tabs.scanner': 'Quét',
       'tabs.medicines': 'Thuốc',
       'tabs.chatbot': 'Chatbot',
-      'home.welcome': 'Chào mừng đến với IMISSHER',
+      'home.welcome': 'Chào mừng đến với Healthcare',
       'home.greeting': 'Chào bạn, hôm nay bạn thế nào...',
       'home.quickActions': 'Thao tác nhanh',
       'home.reminders': 'Lịch nhắc nhở',
@@ -131,7 +131,7 @@ class AppStrings {
       'common.notProvided': 'Chưa cập nhật',
     },
     AppLanguage.en: {
-      'app.title': 'IMISSHER Healthcare',
+      'app.title': 'Healthcare',
       'app.subtitle': 'Smart care for emergency moments',
       'auth.title': 'Sign In / Register',
       'auth.subtitle': 'Manage medicines, medical profile, and SOS in one app.',
@@ -162,7 +162,7 @@ class AppStrings {
       'tabs.scanner': 'Scanner',
       'tabs.medicines': 'Medicines',
       'tabs.chatbot': 'Chatbot',
-      'home.welcome': 'Welcome to IMISSHER',
+      'home.welcome': 'Welcome to Healthcare',
       'home.greeting': 'Hi, how are you feeling today...',
       'home.quickActions': 'Quick actions',
       'home.reminders': 'Reminders',

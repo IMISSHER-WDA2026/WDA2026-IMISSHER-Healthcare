@@ -290,11 +290,13 @@ export class AuthService implements OnModuleInit {
 
   private async seedTestAccount(): Promise<void> {
     const email = this.normalizeEmail(
-      process.env.IMISSHER_TEST_ACCOUNT_EMAIL ?? 'test@imissher.dev',
+      process.env.HEALTHCARE_TEST_ACCOUNT_EMAIL ?? 'test@healthcare.dev',
     );
-    const password = (process.env.IMISSHER_TEST_ACCOUNT_PASSWORD ?? 'Test@123456').trim();
+    const password = (
+      process.env.HEALTHCARE_TEST_ACCOUNT_PASSWORD ?? 'Test@123456'
+    ).trim();
     const fullName = (
-      process.env.IMISSHER_TEST_ACCOUNT_FULL_NAME ?? 'IMISSHER Test User'
+      process.env.HEALTHCARE_TEST_ACCOUNT_FULL_NAME ?? 'Healthcare Test User'
     ).trim();
 
     if (!email || email.length < 5 || password.length < 8 || fullName.length < 2) {

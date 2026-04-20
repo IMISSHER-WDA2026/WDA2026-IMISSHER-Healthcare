@@ -27,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse: string | ExceptionResponsePayload =
       exception instanceof HttpException
         ? (exception.getResponse() as string | ExceptionResponsePayload)
-        : { message: 'Lỗi hệ thống nội bộ', error: 'Internal Server Error' };
+        : { message: 'Internal server error', error: 'Internal Server Error' };
 
     const message =
       typeof exceptionResponse === 'string'
@@ -36,12 +36,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? exceptionResponse.message
           : Array.isArray(exceptionResponse.message)
             ? exceptionResponse.message[0]
-            : 'Đã xảy ra lỗi';
+            : 'An error occurred';
 
     const error =
       typeof exceptionResponse === 'string'
-        ? 'Lỗi'
-        : exceptionResponse.error || 'Lỗi';
+        ? 'Error'
+        : exceptionResponse.error || 'Error';
 
     response.status(status).json({
       statusCode: status,

@@ -1,65 +1,90 @@
+import os
+from typing import Final
+
 import pandas as pd
-from supabase import create_client, Client
 from sentence_transformers import SentenceTransformer
-import time
+from supabase import Client, create_client
 
 # ==========================================
-# 1. CẤU HÌNH SUPABASE (Vẫn dùng Service Role Key)
+# 1. SUPABASE CONFIGURATION (ENV-BASED)
 # ==========================================
-SUPABASE_URL = "https://wunmyjagiwljvxrsurxe.supabase.co"
-SUPABASE_KEY = "sb_secret_F6NleWDh6j8C7x8KlbXkmA_s6Rp9hTO" # LƯU Ý: NÊN ĐỔI KEY SAU KHI CODE XONG NHÉ SẾP!
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+EMBEDDING_MODEL_NAME: Final[str] = "keepitreal/vietnamese-sbert"
+KNOWLEDGE_CSV_PATH: Final[str] = "data/first_aid_knowledge.csv"
+KNOWLEDGE_TABLE_NAME: Final[str] = "first_aid_knowledge"
+
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+    raise RuntimeError(
+        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment variables."
+    )
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # ==========================================
-# 2. TẢI MODEL AI MIỄN PHÍ VÀO MÁY
+# 2. LOAD EMBEDDING MODEL
 # ==========================================
-print("📥 Đang tải Model AI Tiếng Việt (Chỉ tải 1 lần đầu tiên)...")
-# Model này nặng khoảng 400MB, chuyên trị tiếng Việt, tạo ra vector 768 chiều
-ai_model = SentenceTransformer('keepitreal/vietnamese-sbert')
-print("✅ Tải Model hoàn tất!")
+print("Loading Vietnamese embedding model (first run may download model artifacts)...")
+# The selected model is optimized for Vietnamese and produces 768-dimension vectors.
+embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+print("Embedding model loaded successfully.")
 
-def import_len_supabase():
-    print("🚀 Bắt đầu nhúng dữ liệu Cẩm Nang Sơ Cứu vào Supabase (OFFLINE MODE)...")
-    
-    # Đọc file CSV
+
+def _read_knowledge_csv() -> pd.DataFrame:
+    """Read the knowledge CSV with fallback delimiters."""
     try:
-        df = pd.read_csv("data/cam_nang_so_cuu.csv", sep=';', encoding='utf-8')
-    except:
-        df = pd.read_csv("data/cam_nang_so_cuu.csv", sep=',', encoding='utf-8')
-        
-    thanh_cong = 0
-    that_bai = 0
+        dataframe = pd.read_csv(KNOWLEDGE_CSV_PATH, sep=';', encoding='utf-8')
+        if {'title', 'content'}.issubset(dataframe.columns):
+            return dataframe
+    except Exception:
+        pass
 
-    for index, row in df.iterrows():
+    return pd.read_csv(KNOWLEDGE_CSV_PATH, sep=',', encoding='utf-8')
+
+
+def import_into_supabase() -> None:
+    print("Starting offline knowledge embedding import to Supabase...")
+
+    dataframe = _read_knowledge_csv()
+
+    success_count = 0
+    failure_count = 0
+
+    for _, row in dataframe.iterrows():
         title = str(row['title']).strip()
         content = str(row['content']).strip()
-        
-        print(f"⏳ Đang nhúng Vector cho: {title}...")
-        
+
+        if not title or not content:
+            continue
+
+        print(f"Embedding record: {title}")
+
         try:
-            # Dùng model Offline trên máy tính để tạo Vector
-            vector_data = ai_model.encode(content)
-            
-            # Phải chuyển định dạng mảng numpy của AI thành list thường để đẩy lên web
+            # Compute embedding locally and serialize to JSON-compatible list.
+            vector_data = embedding_model.encode(content)
             vector_list = vector_data.tolist()
-            
-            # Đẩy lên Supabase
-            supabase.table("first_aid_knowledge").insert({
-                "title": title,
-                "content": content,
-                "content_embedding": vector_list
-            }).execute()
-            
-            print("  ✅ Đẩy thành công!")
-            thanh_cong += 1
-            
-        except Exception as e:
-            print(f"  ❌ Lỗi ở dòng {title}: {e}")
-            that_bai += 1
+
+            supabase.table(KNOWLEDGE_TABLE_NAME).insert(
+                {
+                    "title": title,
+                    "content": content,
+                    "content_embedding": vector_list,
+                }
+            ).execute()
+
+            print("  Inserted successfully.")
+            success_count += 1
+
+        except Exception as exc:
+            print(f"  Failed to import '{title}': {exc}")
+            failure_count += 1
 
     print("========================================")
-    print(f"🎉 XONG! DỮ LIỆU ĐÃ LÊN SUPABASE MIỄN PHÍ 100%! (Thành công: {thanh_cong} | Thất bại: {that_bai})")
+    print(
+        "Import complete. "
+        f"Successful: {success_count} | Failed: {failure_count}"
+    )
 
 if __name__ == "__main__":
-    import_len_supabase()
+    import_into_supabase()

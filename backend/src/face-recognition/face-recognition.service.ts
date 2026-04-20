@@ -26,10 +26,16 @@ interface ResolvedImageInput {
 interface FaceRecognitionApiPayload {
   status?: string;
   message?: string;
+  error?: string;
   data?: {
     dimensions?: number;
     vector?: unknown;
+    embedding?: unknown;
+    embeddings?: unknown;
   };
+  vector?: unknown;
+  embedding?: unknown;
+  embeddings?: unknown;
 }
 
 interface FaceMatch {
@@ -63,8 +69,15 @@ export class FaceRecognitionService {
     'face-recognition-records.json',
   );
   private readonly apiEndpoint =
-    process.env.FACE_RECOGNITION_API_URL ??
+    process.env.FACE_RECOGNITION_API_URL?.trim() ??
     'http://localhost:8001/api/v1/face/recognize';
+  private readonly apiToken = process.env.FACE_RECOGNITION_API_TOKEN?.trim();
+  private readonly apiRequestMode = this.normalizeRequestMode(
+    process.env.FACE_RECOGNITION_REQUEST_MODE,
+  );
+  private readonly apiTimeoutMs = this.parseApiTimeout(
+    process.env.FACE_RECOGNITION_TIMEOUT_MS,
+  );
   private readonly defaultSimilarityThreshold = this.parseSimilarityThreshold();
 
   constructor() {
@@ -306,20 +319,48 @@ export class FaceRecognitionService {
   private async callAiRecognize(
     imageInput: ResolvedImageInput,
   ): Promise<FaceRecognitionApiPayload> {
-    const formData = new FormData();
-    const blob = new Blob([Uint8Array.from(imageInput.buffer)], {
-      type: imageInput.mimeType,
-    });
-    formData.append('file', blob, imageInput.fileName);
+    const headers: Record<string, string> = {};
+    if (this.apiToken) {
+      headers.Authorization = `Bearer ${this.apiToken}`;
+    }
+
+    let body: BodyInit;
+    if (this.apiRequestMode === 'raw') {
+      headers['Content-Type'] = imageInput.mimeType || 'application/octet-stream';
+      body = Uint8Array.from(imageInput.buffer);
+    } else if (this.apiRequestMode === 'json-base64') {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify({
+        imageBase64: this.buildBase64DataUrl(imageInput),
+        fileName: imageInput.fileName,
+      });
+    } else {
+      const formData = new FormData();
+      const blob = new Blob([Uint8Array.from(imageInput.buffer)], {
+        type: imageInput.mimeType,
+      });
+      formData.append('file', blob, imageInput.fileName);
+      body = formData;
+    }
+
+    const controller = new AbortController();
+    const timeoutHandle = setTimeout(() => controller.abort(), this.apiTimeoutMs);
 
     let response: Response;
     try {
       response = await fetch(this.apiEndpoint, {
         method: 'POST',
-        body: formData,
+        headers,
+        body,
+        signal: controller.signal,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new BadGatewayException('Face recognition AI request timed out.');
+      }
       throw new BadGatewayException('Face recognition AI service is unavailable.');
+    } finally {
+      clearTimeout(timeoutHandle);
     }
 
     const rawText = await response.text();
@@ -327,7 +368,9 @@ export class FaceRecognitionService {
 
     if (!response.ok) {
       throw new BadGatewayException(
-        payload.message || `Face recognition AI returned status ${response.status}.`,
+        payload.message ||
+        payload.error ||
+        `Face recognition AI returned status ${response.status}.`,
       );
     }
 
@@ -349,18 +392,69 @@ export class FaceRecognitionService {
   }
 
   private extractVector(payload: FaceRecognitionApiPayload): number[] {
-    const vector = payload.data?.vector;
+    const candidates: unknown[] = [
+      payload.data?.vector,
+      payload.data?.embedding,
+      payload.data?.embeddings,
+      payload.vector,
+      payload.embedding,
+      payload.embeddings,
+    ];
 
-    if (!Array.isArray(vector) || vector.length === 0) {
-      throw new BadGatewayException('Face recognition AI did not return a valid vector.');
+    for (const candidate of candidates) {
+      const normalized = this.toNumericVector(candidate);
+      if (normalized) {
+        return normalized;
+      }
     }
 
-    const normalizedVector = vector.map((value) => Number(value));
-    if (normalizedVector.some((value) => !Number.isFinite(value))) {
-      throw new BadGatewayException('Face recognition vector contains invalid values.');
+    throw new BadGatewayException('Face recognition AI did not return a valid vector.');
+  }
+
+  private toNumericVector(value: unknown): number[] | null {
+    if (Array.isArray(value) && value.length > 0) {
+      if (Array.isArray(value[0])) {
+        return this.toNumericVector(value[0]);
+      }
+
+      const normalized = value.map((item) => Number(item));
+      if (normalized.some((item) => !Number.isFinite(item))) {
+        return null;
+      }
+
+      return normalized;
     }
 
-    return normalizedVector;
+    return null;
+  }
+
+  private buildBase64DataUrl(imageInput: ResolvedImageInput): string {
+    return `data:${imageInput.mimeType};base64,${imageInput.buffer.toString('base64')}`;
+  }
+
+  private normalizeRequestMode(rawMode: string | undefined):
+    | 'multipart'
+    | 'raw'
+    | 'json-base64' {
+    const normalized = rawMode?.trim().toLowerCase();
+    if (normalized === 'raw') {
+      return 'raw';
+    }
+
+    if (normalized === 'json-base64') {
+      return 'json-base64';
+    }
+
+    return 'multipart';
+  }
+
+  private parseApiTimeout(rawTimeout: string | undefined): number {
+    const value = Number.parseInt(rawTimeout ?? '', 10);
+    if (!Number.isFinite(value)) {
+      return 45_000;
+    }
+
+    return Math.min(Math.max(value, 3_000), 180_000);
   }
 
   private findBestMatch(vector: number[], minSimilarity: number): FaceMatch | null {

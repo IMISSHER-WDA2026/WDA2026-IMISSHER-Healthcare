@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: imissher-backend
+    name: healthcare-backend
     runtime: docker
     dockerContext: .
     dockerfilePath: ./Dockerfile
@@ -25,12 +25,20 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: FACE_RECOGNITION_API_URL
-        value: https://your-ai-service.example.com/api/v1/face/recognize
+        value: https://your-face-space.hf.space/api/v1/face/recognize
+      - key: FACE_RECOGNITION_API_TOKEN
+        sync: false
+      - key: FACE_RECOGNITION_REQUEST_MODE
+        value: multipart
       - key: FACE_RECOGNITION_MATCH_THRESHOLD
         value: "0.82"
-      - key: IMISSHER_TEST_ACCOUNT_EMAIL
-        value: test@imissher.dev
-      - key: IMISSHER_TEST_ACCOUNT_PASSWORD
+      - key: RAG_MODEL_API_URL
+        value: https://your-rag-space.hf.space/api/v1/rag/answer
+      - key: RAG_MODEL_API_TOKEN
+        sync: false
+      - key: HEALTHCARE_TEST_ACCOUNT_EMAIL
+        value: test@healthcare.dev
+      - key: HEALTHCARE_TEST_ACCOUNT_PASSWORD
         value: Test@123456
-      - key: IMISSHER_TEST_ACCOUNT_FULL_NAME
-        value: Tai Khoan Test IMISSHER
+      - key: HEALTHCARE_TEST_ACCOUNT_FULL_NAME
+        value: Tai Khoan Test Healthcare

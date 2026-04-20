@@ -8,10 +8,10 @@ import { ChatRequestDto } from './dto/chat-request.dto';
 export class ChatbotController {
   constructor(private readonly chatbotService: ChatbotService) { }
 
-  @ApiOperation({ summary: 'Gửi câu hỏi và nhận phản hồi từ chatbot y tế.' })
+  @ApiOperation({ summary: 'Send a question and receive a medical chatbot response.' })
   @ApiResponse({
     status: 200,
-    description: 'Trả về câu trả lời từ cloud model hoặc local RAG fallback.',
+    description: 'Returns a reply from the cloud model or local RAG fallback.',
   })
   @HttpCode(200)
   @Post('chat')

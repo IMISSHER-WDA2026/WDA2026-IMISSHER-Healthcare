@@ -34,7 +34,7 @@ const state: AppState = {
     incidents: [],
 };
 
-const savedUserId = localStorage.getItem('imissher.sos.userId');
+const savedUserId = localStorage.getItem('healthcare.sos.userId');
 if (savedUserId) {
     elements.userId.value = savedUserId;
 }
@@ -119,7 +119,7 @@ async function onCreateIncident(event: SubmitEvent): Promise<void> {
         return;
     }
 
-    localStorage.setItem('imissher.sos.userId', userId);
+    localStorage.setItem('healthcare.sos.userId', userId);
     showStatus('Sending SOS incident...');
 
     try {

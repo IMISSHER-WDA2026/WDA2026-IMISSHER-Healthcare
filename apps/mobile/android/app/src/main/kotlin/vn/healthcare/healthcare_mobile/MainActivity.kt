@@ -1,4 +1,4 @@
-package vn.imissher.imissher_mobile
+package vn.healthcare.healthcare_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

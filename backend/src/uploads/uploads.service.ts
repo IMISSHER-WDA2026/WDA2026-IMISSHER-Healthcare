@@ -194,7 +194,7 @@ export class UploadsService {
   }
 
   private resolveUploadDirectory(): string {
-    const configuredDirectory = process.env.IMISSHER_UPLOAD_DIR;
+    const configuredDirectory = process.env.HEALTHCARE_UPLOAD_DIR;
     if (configuredDirectory) {
       return resolve(process.cwd(), configuredDirectory);
     }

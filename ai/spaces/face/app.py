@@ -2,7 +2,6 @@ import os
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 
 FACE_MODEL_NAME = os.getenv("FACE_MODEL_NAME", "Facenet512").strip() or "Facenet512"
 FACE_ENFORCE_DETECTION = (
@@ -12,16 +11,8 @@ MAX_IMAGE_BYTES = int(os.getenv("MAX_IMAGE_BYTES", str(10 * 1024 * 1024)))
 
 app = FastAPI(
     title="Healthcare Face Recognition Model",
-    description="Face embedding model service for Hugging Face Docker Space.",
-    version="4.0.0",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    description="Face embedding service for Hugging Face Docker Space.",
+    version="1.0.0",
 )
 
 
@@ -74,15 +65,9 @@ def _extract_embedding(payload: Any) -> list[float]:
 
 
 def _compute_embedding(image_bytes: bytes) -> list[float]:
-    try:
-        import cv2
-        import numpy as np
-        from deepface import DeepFace
-    except ImportError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Model dependencies are missing from container image.",
-        ) from exc
+    import cv2
+    import numpy as np
+    from deepface import DeepFace
 
     image_array = np.frombuffer(image_bytes, np.uint8)
     image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
@@ -103,15 +88,6 @@ def _compute_embedding(image_bytes: bytes) -> list[float]:
         ) from exc
 
     return _extract_embedding(output)
-
-
-@app.get("/")
-def root() -> dict[str, Any]:
-    return {
-        "service": "healthcare-face-space",
-        "model": FACE_MODEL_NAME,
-        "path": "/api/v1/face/recognize",
-    }
 
 
 @app.get("/healthz")

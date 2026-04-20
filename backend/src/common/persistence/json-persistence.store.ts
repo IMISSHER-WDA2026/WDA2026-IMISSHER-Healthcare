@@ -8,7 +8,7 @@ export class JsonPersistenceStore<T> {
     constructor(fileName: string) {
         this.persistenceEnabled = process.env.NODE_ENV !== 'test';
 
-        const configuredDir = process.env.IMISSHER_DATA_DIR;
+        const configuredDir = process.env.HEALTHCARE_DATA_DIR;
         const baseDir = configuredDir
             ? resolve(process.cwd(), configuredDir)
             : resolve(process.cwd(), '.runtime-data');

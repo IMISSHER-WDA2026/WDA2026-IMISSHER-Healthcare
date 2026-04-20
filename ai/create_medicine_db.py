@@ -1,60 +1,138 @@
 import pandas as pd
-import random
 
-def tao_file_csv():
-    # Danh sách thuốc thuần Việt chia theo nhóm
-    thuoc_giam_dau = ["Paracetamol", "Aspirin", "Ibuprofen", "Diclofenac", "Ketoprofen", "Naproxen", "Celecoxib", "Panadol Extra", "Hapacol"]
-    thuoc_khang_sinh = ["Amoxicillin", "Augmentin", "Ciprofloxacin", "Azithromycin", "Cephalexin", "Doxycycline", "Metronidazole", "Clarithromycin"]
-    thuoc_da_day = ["Omeprazole", "Esomeprazole", "Lansoprazole", "Ranitidine", "Domperidone", "Simethicone", "Sucralfate"]
-    thuoc_tim_mach = ["Amlodipine", "Losartan", "Enalapril", "Metoprolol", "Atorvastatin", "Simvastatin", "Clopidogrel", "Warfarin"]
-    thuoc_tieu_duong = ["Metformin", "Glibenclamide", "Gliclazide", "Insulin", "Pioglitazone", "Sitagliptin"]
-    thuoc_ho_hap = ["Salbutamol", "Prednisolone", "Cetirizine", "Loratadine", "Montelukast", "Budesonide", "Decolgen"]
-    vitamin_khoang_chat = ["Vitamin C", "Vitamin D3", "Vitamin B1", "Vitamin B6", "Vitamin B12", "Acid Folic", "Canxi", "Sắt", "Kẽm"]
-    thuoc_thong_dung_khac = ["Oresol", "Smecta", "Berberin", "Hydrocortisone", "Clotrimazole", "Loperamide", "Bisacodyl"]
 
-    tat_ca_thuoc = thuoc_giam_dau + thuoc_khang_sinh + thuoc_da_day + thuoc_tim_mach + thuoc_tieu_duong + thuoc_ho_hap + vitamin_khoang_chat + thuoc_thong_dung_khac
+def create_csv_file() -> None:
+    # Medicine catalog grouped by category.
+    pain_relief_medicines = [
+        "Paracetamol",
+        "Aspirin",
+        "Ibuprofen",
+        "Diclofenac",
+        "Ketoprofen",
+        "Naproxen",
+        "Celecoxib",
+        "Panadol Extra",
+        "Hapacol",
+    ]
+    antibiotics = [
+        "Amoxicillin",
+        "Augmentin",
+        "Ciprofloxacin",
+        "Azithromycin",
+        "Cephalexin",
+        "Doxycycline",
+        "Metronidazole",
+        "Clarithromycin",
+    ]
+    stomach_medicines = [
+        "Omeprazole",
+        "Esomeprazole",
+        "Lansoprazole",
+        "Ranitidine",
+        "Domperidone",
+        "Simethicone",
+        "Sucralfate",
+    ]
+    cardiovascular_medicines = [
+        "Amlodipine",
+        "Losartan",
+        "Enalapril",
+        "Metoprolol",
+        "Atorvastatin",
+        "Simvastatin",
+        "Clopidogrel",
+        "Warfarin",
+    ]
+    diabetes_medicines = [
+        "Metformin",
+        "Glibenclamide",
+        "Gliclazide",
+        "Insulin",
+        "Pioglitazone",
+        "Sitagliptin",
+    ]
+    respiratory_medicines = [
+        "Salbutamol",
+        "Prednisolone",
+        "Cetirizine",
+        "Loratadine",
+        "Montelukast",
+        "Budesonide",
+        "Decolgen",
+    ]
+    vitamins_and_minerals = [
+        "Vitamin C",
+        "Vitamin D3",
+        "Vitamin B1",
+        "Vitamin B6",
+        "Vitamin B12",
+        "Acid Folic",
+        "Canxi",
+        "Sắt",
+        "Kẽm",
+    ]
+    other_common_medicines = [
+        "Oresol",
+        "Smecta",
+        "Berberin",
+        "Hydrocortisone",
+        "Clotrimazole",
+        "Loperamide",
+        "Bisacodyl",
+    ]
 
-    danh_sach_thuoc = []
-    
-    # Mã vạch quốc gia Việt Nam là 893
-    # Bắt đầu dải mã vạch giả lập: 8931110000000
+    all_medicines = (
+        pain_relief_medicines
+        + antibiotics
+        + stomach_medicines
+        + cardiovascular_medicines
+        + diabetes_medicines
+        + respiratory_medicines
+        + vitamins_and_minerals
+        + other_common_medicines
+    )
+
+    medicine_records = []
+
+    # Vietnam barcode prefix: 893.
+    # Start a synthetic barcode range at 8931110000000.
     base_barcode = 8931110000000
 
-    print("🔄 Đang tiến hành tạo dữ liệu...")
+    print("Generating medicine dataset...")
 
-    for i, ten_thuoc in enumerate(tat_ca_thuoc):
-        barcode = str(base_barcode + i)
-        
-        # Phân loại công dụng tự động dựa trên mảng
-        if ten_thuoc in thuoc_giam_dau:
-            cong_dung = f"Giảm đau, hạ sốt, chống viêm liên quan đến {ten_thuoc}."
-            chong_chi_dinh = "Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
-        elif ten_thuoc in thuoc_khang_sinh:
-            cong_dung = f"Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với {ten_thuoc}."
-            chong_chi_dinh = "Người có tiền sử dị ứng với kháng sinh cùng nhóm."
-        elif ten_thuoc in thuoc_da_day:
-            cong_dung = f"Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản."
-            chong_chi_dinh = "Không dùng cho người mẫn cảm với thành phần thuốc."
+    for index, medicine_name in enumerate(all_medicines):
+        barcode = str(base_barcode + index)
+
+        # Derive generic usage and contraindication by category.
+        if medicine_name in pain_relief_medicines:
+            description = f"Giảm đau, hạ sốt, chống viêm liên quan đến {medicine_name}."
+            contraindications = "Người suy gan, suy thận nặng, mẫn cảm với thành phần của thuốc."
+        elif medicine_name in antibiotics:
+            description = f"Điều trị các bệnh nhiễm khuẩn do vi khuẩn nhạy cảm với {medicine_name}."
+            contraindications = "Người có tiền sử dị ứng với kháng sinh cùng nhóm."
+        elif medicine_name in stomach_medicines:
+            description = "Điều trị viêm loét dạ dày tá tràng, trào ngược dạ dày thực quản."
+            contraindications = "Không dùng cho người mẫn cảm với thành phần thuốc."
         else:
-            cong_dung = f"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với {ten_thuoc}."
-            chong_chi_dinh = "Đọc kỹ hướng dẫn sử dụng trước khi dùng."
+            description = f"Bổ sung, hỗ trợ điều trị theo chỉ định của bác sĩ đối với {medicine_name}."
+            contraindications = "Đọc kỹ hướng dẫn sử dụng trước khi dùng."
 
-        # Tạo dictionary chứa các KEY TRÙNG VỚI TÊN CỘT TRONG SUPABASE
-        thuoc = {
-            "name": ten_thuoc,
-            "active_ingredient": ten_thuoc, # Tạm dùng tên thuốc làm hoạt chất
+        # Keep keys aligned with Supabase table column names.
+        medicine = {
+            "name": medicine_name,
+            "active_ingredient": medicine_name,  # Placeholder until richer active-ingredient data is available.
             "barcode": barcode,
-            "description": cong_dung,
-            "contraindications": chong_chi_dinh
+            "description": description,
+            "contraindications": contraindications,
         }
-        danh_sach_thuoc.append(thuoc)
+        medicine_records.append(medicine)
 
-    # Chuyển thành file CSV
-    df = pd.DataFrame(danh_sach_thuoc)
-    file_name = "data/Du_lieu_tu_thuoc_IMISSHER.csv"
-    df.to_csv(file_name, index=False, encoding="utf-8-sig")
-    
-    print(f"✅ Xong! Đã tạo file {file_name} với {len(danh_sach_thuoc)} loại thuốc.")
+    dataframe = pd.DataFrame(medicine_records)
+    file_name = "data/healthcare_medicine_catalog.csv"
+    dataframe.to_csv(file_name, index=False, encoding="utf-8-sig")
+
+    print(f"Medicine dataset created: {file_name} ({len(medicine_records)} records).")
+
 
 if __name__ == "__main__":
-    tao_file_csv()
+    create_csv_file()

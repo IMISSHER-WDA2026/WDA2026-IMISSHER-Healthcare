@@ -1,6 +1,6 @@
-# IMISSHER Healthcare Monorepo
+# HEALTHCARE Monorepo
 
-IMISSHER is a healthcare platform with a NestJS backend, a FastAPI AI service, and a Flutter mobile client.
+Healthcare is a healthcare platform with a NestJS backend, a FastAPI AI service, and a Flutter mobile client.
 
 ## Workspace
 
@@ -37,7 +37,7 @@ Services started:
 
 Default seeded test account:
 
-- Email: `test@imissher.dev`
+- Email: `test@healthcare.dev`
 - Password: `Test@123456`
 
 ### AI Service
@@ -56,7 +56,7 @@ Docs: http://localhost:8001/docs
 ```bash
 cd apps/mobile
 flutter pub get
-flutter run --dart-define=IMISSHER_API_BASE_URL=http://10.0.2.2:3000
+flutter run --dart-define=HEALTHCARE_API_BASE_URL=http://10.0.2.2:3000
 ```
 
 ### SOS Web Prototype (Separated Web Dev)

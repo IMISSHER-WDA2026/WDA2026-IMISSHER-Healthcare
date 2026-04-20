@@ -1,4 +1,4 @@
-# IMISSHER Mobile
+# Healthcare Mobile
 
 Flutter client for Android and iOS.
 
@@ -12,7 +12,7 @@ Flutter client for Android and iOS.
 
 ```bash
 flutter pub get
-flutter run --dart-define=IMISSHER_API_BASE_URL=http://10.0.2.2:3000
+flutter run --dart-define=HEALTHCARE_API_BASE_URL=http://10.0.2.2:3000
 ```
 
 Use 10.0.2.2 for Android emulator, or your LAN IP for a physical device.
@@ -22,7 +22,7 @@ Use 10.0.2.2 for Android emulator, or your LAN IP for a physical device.
 ```bash
 flutter analyze
 flutter test
-flutter build apk --debug --dart-define=IMISSHER_API_BASE_URL=http://10.0.2.2:3000
+flutter build apk --debug --dart-define=HEALTHCARE_API_BASE_URL=http://10.0.2.2:3000
 ```
 
 ## Scope
