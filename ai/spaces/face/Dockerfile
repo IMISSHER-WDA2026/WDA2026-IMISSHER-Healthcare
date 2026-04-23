@@ -15,6 +15,18 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
+# Pre-download the Facenet512 model weights
+RUN python - <<'EOF'
+import numpy as np
+try:
+    from deepface import DeepFace
+    dummy = np.zeros((160, 160, 3), dtype=np.uint8)
+    DeepFace.represent(dummy, model_name="Facenet512", enforce_detection=False)
+    print("Facenet512 weights cached successfully.")
+except Exception as exc:
+    print(f"Model pre-download skipped: {exc}")
+EOF
+
 RUN adduser --disabled-password --gecos "" appuser \
     && chown -R appuser:appuser /app
 
