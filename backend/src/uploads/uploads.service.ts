@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -134,12 +134,23 @@ export class UploadsService {
     return { deleted: true };
   }
 
-  async getFileContent(id: number): Promise<{
+  // TODO: writeFileSync stores uploads on the local filesystem. On Render's
+  // ephemeral disk this means all files are lost on every deploy. Migrate to
+  // an object storage provider (S3, Firebase Storage, or Supabase Storage) and
+  // replace the writeFileSync/readFileSync/rmSync calls with SDK equivalents.
+  async getFileContent(
+    id: number,
+    requestingUserId?: string,
+  ): Promise<{
     fileName: string;
     mimeType: string;
     buffer: Buffer;
   }> {
     const record = await this.findOneRecord(id);
+
+    if (requestingUserId && record.userId && record.userId !== requestingUserId) {
+      throw new ForbiddenException('You do not have permission to access this file.');
+    }
 
     if (!existsSync(record.absolutePath)) {
       throw new NotFoundException(`Upload file for record #${id} does not exist.`);

@@ -1,4 +1,4 @@
-import type { CreateSosIncidentPayload, SosIncident } from '../types';
+import type { CreateSosIncidentPayload, PublicUserProfile, SosIncident } from '../types';
 
 export function normalizeApiBaseUrl(rawBaseUrl: string): string {
     const trimmed = rawBaseUrl.trim();
@@ -34,6 +34,47 @@ async function readErrorMessage(response: Response): Promise<string> {
     }
 
     return fallback;
+}
+
+export async function fetchPublicProfile(
+    apiBaseUrl: string,
+    userId: string,
+): Promise<PublicUserProfile> {
+    const url = `${normalizeApiBaseUrl(apiBaseUrl)}/auth/public/${encodeURIComponent(userId)}`;
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+    }
+
+    return (await response.json()) as PublicUserProfile;
+}
+
+export async function createBystanderIncident(
+    apiBaseUrl: string,
+    userId: string,
+    note?: string,
+): Promise<SosIncident> {
+    const url = `${normalizeApiBaseUrl(apiBaseUrl)}/sos/bystander`;
+    const body: { userId: string; note?: string } = { userId };
+    if (note?.trim()) {
+        body.note = note.trim();
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+    }
+
+    return (await response.json()) as SosIncident;
 }
 
 export async function listIncidents(

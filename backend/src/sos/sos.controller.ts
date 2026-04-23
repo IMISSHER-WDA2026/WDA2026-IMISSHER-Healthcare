@@ -19,24 +19,46 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SosService } from './sos.service';
-import { CreateSosDto } from './dto/create-sos.dto';
+import { CreateSosDto, SosTriggerSource } from './dto/create-sos.dto';
 import { SosStatus, UpdateSosDto } from './dto/update-sos.dto';
 
+class BystanderSosDto {
+  @IsUUID()
+  userId!: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
 @ApiTags('SOS')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('sos')
 export class SosController {
   constructor(private readonly sosService: SosService) { }
 
+  @ApiOperation({ summary: 'Tạo SOS khẩn cấp từ người xung quanh (không cần xác thực).' })
+  @Post('bystander')
+  createBystander(@Body() dto: BystanderSosDto) {
+    return this.sosService.create({
+      userId: dto.userId,
+      triggerSource: SosTriggerSource.QR,
+      note: dto.note,
+    } as CreateSosDto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Tạo mới một sự cố SOS.' })
   @Post()
   create(@Body() createSosDto: CreateSosDto) {
     return this.sosService.create(createSosDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Lấy danh sách sự cố SOS theo bộ lọc.' })
   @ApiQuery({ name: 'userId', required: false, description: 'UUID người dùng.' })
   @ApiQuery({ name: 'status', required: false, enum: SosStatus })
@@ -48,6 +70,8 @@ export class SosController {
     return this.sosService.findAll({ userId, status });
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Lấy sự cố SOS đang mở/đã tiếp nhận mới nhất theo userId.' })
   @ApiParam({ name: 'userId', description: 'UUID người dùng.' })
   @Get('active/:userId')
@@ -55,6 +79,8 @@ export class SosController {
     return this.sosService.findActiveByUser(userId);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Lấy chi tiết sự cố SOS theo id.' })
   @ApiParam({ name: 'id', description: 'ID số nguyên của sự cố.' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy sự cố SOS.' })
@@ -63,6 +89,8 @@ export class SosController {
     return this.sosService.findOne(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Cập nhật trạng thái/thông tin sự cố SOS.' })
   @ApiParam({ name: 'id', description: 'ID số nguyên của sự cố.' })
   @Patch(':id')
@@ -70,6 +98,8 @@ export class SosController {
     return this.sosService.update(id, updateSosDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Xóa một sự cố SOS theo id.' })
   @ApiParam({ name: 'id', description: 'ID số nguyên của sự cố.' })
   @Delete(':id')

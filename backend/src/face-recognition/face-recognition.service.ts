@@ -463,55 +463,34 @@ export class FaceRecognitionService {
     vector: number[],
     minSimilarity: number,
   ): Promise<FaceMatch | null> {
-    let bestMatch: FaceMatch | null = null;
+    // Let PostgreSQL + pgvector handle similarity in-database to avoid loading
+    // all embedding rows into Node.js memory (OOM risk with large datasets).
+    const vectorLiteral = `[${vector.join(',')}]`;
 
-    const records = await this.faceRecognitionRepository
-      .createQueryBuilder('record')
-      .where('record.userId IS NOT NULL')
-      .andWhere('record.dimensions = :dimensions', { dimensions: vector.length })
-      .getMany();
+    const rows = await this.faceRecognitionRepository.query<
+      Array<{ userId: string; similarity: string }>
+    >(
+      `SELECT "userId"::text,
+              (1.0 - (vector::text::vector <=> $1::vector))::float8 AS similarity
+       FROM face_recognition_records
+       WHERE "userId" IS NOT NULL
+         AND dimensions = $2
+       ORDER BY vector::text::vector <=> $1::vector
+       LIMIT 1`,
+      [vectorLiteral, vector.length],
+    );
 
-    for (const record of records) {
-      if (!record.userId) {
-        continue;
-      }
-
-      const storedVector = this.normalizeStoredVector(record.vector);
-      if (storedVector.length !== vector.length) {
-        continue;
-      }
-
-      const similarity = this.cosineSimilarity(storedVector, vector);
-      if (!bestMatch || similarity > bestMatch.similarity) {
-        bestMatch = {
-          userId: record.userId,
-          similarity,
-        };
-      }
-    }
-
-    if (!bestMatch || bestMatch.similarity < minSimilarity) {
+    if (!rows || rows.length === 0) {
       return null;
     }
 
-    return bestMatch;
-  }
+    const row = rows[0];
+    const similarity = Number(row.similarity);
 
-  private cosineSimilarity(left: number[], right: number[]): number {
-    let dotProduct = 0;
-    let leftNorm = 0;
-    let rightNorm = 0;
-
-    for (let i = 0; i < left.length; i += 1) {
-      dotProduct += left[i] * right[i];
-      leftNorm += left[i] ** 2;
-      rightNorm += right[i] ** 2;
+    if (!Number.isFinite(similarity) || similarity < minSimilarity) {
+      return null;
     }
 
-    if (leftNorm === 0 || rightNorm === 0) {
-      return 0;
-    }
-
-    return dotProduct / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+    return { userId: row.userId, similarity };
   }
 }

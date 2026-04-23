@@ -8,12 +8,15 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Request } from 'express';
+import { AuthTokenPayload } from '../auth/interfaces/auth-payload.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
@@ -93,9 +96,10 @@ export class UploadsController {
   @Get(':id/content')
   async getContent(
     @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: AuthTokenPayload },
     @Res({ passthrough: true }) response: Response,
   ) {
-    const file = await this.uploadsService.getFileContent(id);
+    const file = await this.uploadsService.getFileContent(id, req.user?.sub);
     response.setHeader('Content-Type', file.mimeType);
     response.setHeader('Content-Disposition', `inline; filename="${file.fileName}"`);
     return new StreamableFile(file.buffer);

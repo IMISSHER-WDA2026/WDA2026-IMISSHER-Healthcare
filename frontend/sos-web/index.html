@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Healthcare SOS Web</title>
+    <title>Healthcare SOS — Hỗ trợ khẩn cấp</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
         rel="stylesheet" />
 </head>
 
@@ -16,57 +17,59 @@
     <div class="ambient ambient-one"></div>
     <div class="ambient ambient-two"></div>
 
-    <main class="layout">
-        <section class="hero card">
-            <p class="eyebrow">Healthcare</p>
-            <h1>SOS Web Console</h1>
-            <p>
-                Separate web workflow for SOS response operations. Trigger incidents,
-                inspect latest records, and quickly test backend behavior.
-            </p>
-        </section>
-
-        <section class="controls card">
-            <h2>Connection</h2>
-            <label>
-                API Base URL
-                <input id="apiBaseUrl" type="url" value="http://localhost:3000" />
-            </label>
-
-            <h2>Create SOS Incident</h2>
-            <form id="createForm">
-                <label>
-                    User ID
-                    <input id="userId" type="text" placeholder="user-uuid" required />
-                </label>
-
-                <label>
-                    Trigger Source
-                    <select id="triggerSource">
-                        <option value="button">button</option>
-                        <option value="voice">voice</option>
-                        <option value="wearable">wearable</option>
-                    </select>
-                </label>
-
-                <label>
-                    Note
-                    <textarea id="note" rows="3" placeholder="Situation note..."></textarea>
-                </label>
-
-                <button class="btn btn-danger" type="submit">Send SOS</button>
-            </form>
-
-            <p id="status" class="status" aria-live="polite"></p>
-        </section>
-
-        <section class="incidents card">
-            <div class="incidents-header">
-                <h2>Latest Incidents</h2>
-                <button id="refreshBtn" class="btn btn-secondary" type="button">Refresh</button>
+    <header class="navbar">
+        <div class="navbar-inner">
+            <div class="logo-group">
+                <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="40" height="40" rx="12" fill="#E11E2B"/>
+                    <path d="M20 8v24M8 20h24" stroke="white" stroke-width="5" stroke-linecap="round"/>
+                </svg>
+                <span class="logo-text">Healthcare SOS</span>
             </div>
-            <ul id="incidentList" class="incident-list"></ul>
+            <button id="langToggleBtn" class="btn btn-ghost" type="button">EN</button>
+        </div>
+    </header>
+
+    <main class="layout" id="mainContent">
+
+        <section class="hero card" id="heroSection">
+            <p class="eyebrow" id="eyebrowText">Hỗ trợ khẩn cấp</p>
+            <h1 id="heroTitle">Bạn đang xem thông tin y tế của bệnh nhân</h1>
+            <p id="heroDesc">Trang này cho phép người xung quanh xem hồ sơ y tế khẩn cấp và gửi cảnh báo tới hệ thống.</p>
         </section>
+
+        <section id="profileSection" class="profile-section" style="display:none">
+        </section>
+
+        <section id="actionSection" class="action-section card" style="display:none">
+            <h2 id="actionTitle">Gửi cảnh báo</h2>
+            <div class="field-group">
+                <label for="alertNote" id="alertNoteLabel">Ghi chú tình huống (tuỳ chọn)</label>
+                <textarea id="alertNote" rows="3" placeholder="Mô tả tình huống khẩn cấp..."></textarea>
+            </div>
+            <button id="sendAlertBtn" class="btn btn-danger" type="button">
+                <span id="sendAlertText">Gửi cảnh báo SOS</span>
+            </button>
+            <p id="alertStatus" class="status" aria-live="polite"></p>
+        </section>
+
+        <section id="fallbackSection" class="card" style="display:none">
+            <h2 id="fallbackTitle">Nhập User ID</h2>
+            <p id="fallbackDesc">Không tìm thấy userId trong URL. Nhập thủ công để tiếp tục.</p>
+            <div class="field-group">
+                <label for="manualUserId" id="manualLabel">User ID</label>
+                <input id="manualUserId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+            </div>
+            <div class="field-group">
+                <label for="apiBaseUrlInput" id="apiUrlLabel">API Base URL</label>
+                <input id="apiBaseUrlInput" type="url" value="http://localhost:3000" />
+            </div>
+            <button id="lookupBtn" class="btn btn-primary" type="button">
+                <span id="lookupText">Tra cứu</span>
+            </button>
+            <p id="fallbackStatus" class="status" aria-live="polite"></p>
+        </section>
+
     </main>
 
     <script type="module" src="/src/main.ts"></script>

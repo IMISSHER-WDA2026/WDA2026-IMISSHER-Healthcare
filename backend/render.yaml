@@ -38,6 +38,10 @@ services:
         value: https://your-rag-space.hf.space/api/v1/rag/answer
       - key: RAG_MODEL_API_TOKEN
         sync: false
+      - key: FACE_RECOGNITION_TIMEOUT_MS
+        value: "120000"
+      - key: RAG_MODEL_TIMEOUT_MS
+        value: "120000"
       - key: HEALTHCARE_TEST_ACCOUNT_EMAIL
         value: test@healthcare.dev
       - key: HEALTHCARE_TEST_ACCOUNT_PASSWORD
