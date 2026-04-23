@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
 import 'core/localization/app_strings.dart';
 import 'core/network/api_client.dart';
 
@@ -400,6 +403,19 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF0D5C7A),
+        foregroundColor: Colors.white,
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => _QuickScanScreen(strings: widget.strings),
+            ),
+          );
+        },
+        icon: const Icon(Icons.qr_code_scanner_rounded),
+        label: Text(widget.strings.t('quickScan.title')),
+      ),
     );
   }
 }
@@ -477,7 +493,7 @@ class _MainShellState extends State<MainShell> {
         apiClient: widget.apiClient,
         session: widget.session,
       ),
-      ScannerScreen(strings: widget.strings, apiClient: widget.apiClient),
+      ScannerScreen(strings: widget.strings, apiClient: widget.apiClient, session: widget.session),
       MedicinesScreen(
         strings: widget.strings,
         apiClient: widget.apiClient,
@@ -594,6 +610,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final items = await widget.apiClient.getMedicines(
         ownerId: widget.session.userId,
         mineOnly: true,
+        token: widget.session.token,
       );
 
       if (!mounted) {
@@ -614,6 +631,12 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _medicineError = error.message;
       });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _medicineError = widget.strings.t('common.error');
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -1376,6 +1399,7 @@ class _SosScreenState extends State<SosScreen> {
   Widget build(BuildContext context) {
     final strings = widget.strings;
     final contacts = widget.session.emergencyContacts;
+    final sosWebUrl = 'https://your-sos-web.vercel.app/?userId=${widget.session.userId}';
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -1438,6 +1462,98 @@ class _SosScreenState extends State<SosScreen> {
                   value:
                       widget.session.chronicConditions ??
                       strings.t('common.notProvided'),
+                ),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: widget.session.userId),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('User ID copied.')),
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(color: const Color(0xFF111827)),
+                              children: [
+                                const TextSpan(
+                                  text: 'User ID: ',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                TextSpan(
+                                  text: widget.session.userId,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 12,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.copy,
+                          size: 16,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.t('sos.qrCode'),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  strings.t('sos.qrDesc'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: QrImageView(
+                    data: sosWebUrl,
+                    version: QrVersions.auto,
+                    size: 200,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: sosWebUrl));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(strings.t('sos.phoneCopied'))),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.share_outlined),
+                    label: Text(strings.t('sos.saveQr')),
+                  ),
                 ),
               ],
             ),
@@ -1548,156 +1664,214 @@ class ScannerScreen extends StatefulWidget {
     super.key,
     required this.strings,
     required this.apiClient,
+    this.session,
   });
 
   final AppStrings strings;
   final ApiClient apiClient;
+  final AuthSession? session;
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
-  final TextEditingController _barcodeController = TextEditingController();
+  final MobileScannerController _cameraController = MobileScannerController();
+  bool _isFaceMode = false;
+  bool _isCameraActive = true;
+  String? _scannedValue;
   Map<String, dynamic>? _result;
   String? _error;
   bool _loading = false;
 
   @override
   void dispose() {
-    _barcodeController.dispose();
+    _cameraController.dispose();
     super.dispose();
   }
 
-  Future<void> _lookupBarcode() async {
+  Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
+    final barcode = capture.barcodes.firstOrNull;
+    final raw = barcode?.rawValue;
+    if (raw == null || raw.isEmpty || _loading) return;
+
+    await _cameraController.stop();
     setState(() {
+      _isCameraActive = false;
+      _scannedValue = raw;
       _loading = true;
       _error = null;
+      _result = null;
     });
 
     try {
-      final response = await widget.apiClient.lookupMedicineByBarcode(
-        _barcodeController.text,
+      final medicine = await widget.apiClient.lookupMedicineByBarcode(
+        raw,
+        token: widget.session?.token,
       );
-
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
-        _result = response;
-        if (response == null) {
+        _result = medicine;
+        if (medicine == null) {
           _error = widget.strings.t('scanner.noResult');
         }
       });
-    } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _result = null;
-        _error = error.message;
-      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = widget.strings.t('common.error'));
     } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _resetScan() {
+    setState(() {
+      _scannedValue = null;
+      _result = null;
+      _error = null;
+      _isCameraActive = true;
+    });
+    _cameraController.start();
   }
 
   @override
   Widget build(BuildContext context) {
-    final result = _result;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.strings.t('scanner.title'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
+                      value: false,
+                      label: Text(widget.strings.t('scanner.barcodeMode')),
+                      icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text(widget.strings.t('scanner.faceMode')),
+                      icon: const Icon(Icons.face_rounded, size: 18),
+                    ),
+                  ],
+                  selected: {_isFaceMode},
+                  onSelectionChanged: (val) {
+                    setState(() {
+                      _isFaceMode = val.first;
+                      _scannedValue = null;
+                      _result = null;
+                      _error = null;
+                      _isCameraActive = true;
+                    });
+                    _cameraController.start();
+                  },
                 ),
-                const SizedBox(height: 8),
-                Text(widget.strings.t('scanner.desc')),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _barcodeController,
-                  decoration: InputDecoration(
-                    labelText: widget.strings.t('scanner.barcodeLabel'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _loading ? null : _lookupBarcode,
-                    icon: const Icon(Icons.search_rounded),
-                    label: _loading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(widget.strings.t('scanner.lookup')),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
-        if (_error != null)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEE),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFFCDD2)),
-            ),
-            child: Text(
-              _error!,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFB71C1C)),
-            ),
-          ),
-        if (result != null) ...[
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.strings.t('scanner.resultTitle'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+        Expanded(
+          flex: 5,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: _isCameraActive
+                  ? MobileScanner(
+                      controller: _cameraController,
+                      onDetect: _isFaceMode ? null : _onBarcodeDetected,
+                    )
+                  : Container(
+                      color: Colors.black87,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+                            const SizedBox(height: 8),
+                            Text(
+                              _scannedValue ?? '',
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            TextButton.icon(
+                              onPressed: _resetScan,
+                              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                              label: Text(widget.strings.t('common.retry'), style: const TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(result['name']?.toString() ?? '-'),
-                  const SizedBox(height: 4),
-                  Text(result['active_ingredient']?.toString() ?? ''),
-                  const SizedBox(height: 4),
-                  Text(result['description']?.toString() ?? ''),
-                ],
-              ),
             ),
           ),
-        ],
+        ),
+        Expanded(
+          flex: 3,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: _buildResult(context),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildResult(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEBEE),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFFCDD2)),
+        ),
+        child: Text(_error!, style: const TextStyle(color: Color(0xFFB71C1C))),
+      );
+    }
+
+    final result = _result;
+    if (result == null) {
+      return Center(
+        child: Text(
+          _isFaceMode
+              ? widget.strings.t('scanner.faceMode')
+              : widget.strings.t('scanner.tapToScan'),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280)),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.strings.t('scanner.resultTitle'),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            if (result['name'] != null) Text(result['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w600)),
+            if (result['active_ingredient'] != null) ...[const SizedBox(height: 4), Text(result['active_ingredient'].toString())],
+            if (result['description'] != null) ...[const SizedBox(height: 4), Text(result['description'].toString())],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1755,6 +1929,7 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
       final items = await widget.apiClient.getMedicines(
         ownerId: widget.session.userId,
         mineOnly: true,
+        token: widget.session.token,
       );
       if (!mounted) {
         return;
@@ -1774,6 +1949,12 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
       setState(() {
         _error = error.message;
       });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = widget.strings.t('common.error');
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -2034,25 +2215,42 @@ class _CreateMedicineSheet extends StatefulWidget {
   State<_CreateMedicineSheet> createState() => _CreateMedicineSheetState();
 }
 
-class _CreateMedicineSheetState extends State<_CreateMedicineSheet> {
+class _CreateMedicineSheetState extends State<_CreateMedicineSheet>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  final MobileScannerController _scannerController = MobileScannerController();
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ingredientController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _contraController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _unitController = TextEditingController(
-    text: 'viên',
-  );
+  final TextEditingController _unitController = TextEditingController(text: 'viên');
 
   DateTime? _expiresAt;
   TimeOfDay? _reminderTime;
-
   bool _saving = false;
+  bool _scanning = false;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index == 0) {
+        _scannerController.stop();
+      } else {
+        _scannerController.start();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
+    _scannerController.dispose();
     _nameController.dispose();
     _ingredientController.dispose();
     _barcodeController.dispose();
@@ -2063,6 +2261,48 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet> {
     super.dispose();
   }
 
+  Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
+    final raw = capture.barcodes.firstOrNull?.rawValue;
+    if (raw == null || raw.isEmpty || _scanning) return;
+
+    await _scannerController.stop();
+    setState(() {
+      _scanning = true;
+      _error = null;
+    });
+
+    try {
+      final medicine = await widget.apiClient.lookupMedicineByBarcode(raw, token: widget.session.token);
+      if (!mounted) return;
+
+      if (medicine != null) {
+        _nameController.text = medicine['name']?.toString() ?? '';
+        _ingredientController.text = medicine['active_ingredient']?.toString() ?? '';
+        _barcodeController.text = raw;
+        _descriptionController.text = medicine['description']?.toString() ?? '';
+        _contraController.text = medicine['contraindications']?.toString() ?? '';
+        _tabController.animateTo(0);
+        setState(() {
+          _error = null;
+        });
+      } else {
+        _barcodeController.text = raw;
+        _tabController.animateTo(0);
+        setState(() {
+          _error = widget.strings.t('scanner.noResult');
+        });
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = widget.strings.t('common.error'));
+    } finally {
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
   Future<void> _pickExpiryDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -2071,14 +2311,8 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet> {
       lastDate: DateTime(now.year + 15),
       initialDate: _expiresAt ?? now,
     );
-
-    if (picked == null) {
-      return;
-    }
-
-    setState(() {
-      _expiresAt = picked;
-    });
+    if (picked == null) return;
+    setState(() => _expiresAt = picked);
   }
 
   Future<void> _pickReminderTime() async {
@@ -2086,22 +2320,12 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet> {
       context: context,
       initialTime: _reminderTime ?? const TimeOfDay(hour: 8, minute: 0),
     );
-
-    if (picked == null) {
-      return;
-    }
-
-    setState(() {
-      _reminderTime = picked;
-    });
+    if (picked == null) return;
+    setState(() => _reminderTime = picked);
   }
 
   Future<void> _save() async {
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-
+    setState(() { _saving = true; _error = null; });
     try {
       final quantity = int.tryParse(_quantityController.text.trim());
       await widget.apiClient.createMedicine(
@@ -2115,189 +2339,141 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet> {
         quantity: quantity,
         unit: _unitController.text,
         expiresAt: _expiresAt == null ? null : _formatDate(_expiresAt!),
-        reminderTime: _reminderTime == null
-            ? null
-            : _formatTime(_reminderTime!),
+        reminderTime: _reminderTime == null ? null : _formatTime(_reminderTime!),
       );
-
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _error = error.message;
-      });
+      if (!mounted) return;
+      setState(() => _error = error.message);
     } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final strings = widget.strings;
 
     return Container(
+      height: MediaQuery.sizeOf(context).height * 0.92,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD0D5DD),
-                  borderRadius: BorderRadius.circular(999),
-                ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD0D5DD),
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.strings.t('medicines.formTitle'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              strings.t('medicines.formTitle'),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: widget.strings.t('medicines.formName'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _ingredientController,
-              decoration: InputDecoration(
-                labelText: widget.strings.t('medicines.formIngredient'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _quantityController,
-                    decoration: InputDecoration(
-                      labelText: widget.strings.t('medicines.formQuantity'),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _unitController,
-                    decoration: InputDecoration(
-                      labelText: widget.strings.t('medicines.formUnit'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _barcodeController,
-              decoration: InputDecoration(
-                labelText: widget.strings.t('medicines.formBarcode'),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickExpiryDate,
-                    icon: const Icon(Icons.event_outlined),
-                    label: Text(
-                      _expiresAt == null
-                          ? widget.strings.t('medicines.pickExpiryDate')
-                          : _formatDate(_expiresAt!),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickReminderTime,
-                    icon: const Icon(Icons.schedule_outlined),
-                    label: Text(
-                      _reminderTime == null
-                          ? widget.strings.t('medicines.pickReminderTime')
-                          : _formatTime(_reminderTime!),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: widget.strings.t('medicines.formDescription'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _contraController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: widget.strings.t('medicines.formContra'),
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _error!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFFB71C1C),
-                ),
-              ),
+          ),
+          const SizedBox(height: 8),
+          TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(text: strings.t('medicines.manualInput'), icon: const Icon(Icons.edit_note_rounded)),
+              Tab(text: strings.t('medicines.scanBarcode'), icon: const Icon(Icons.qr_code_scanner_rounded)),
             ],
-            const SizedBox(height: 14),
-            Row(
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _saving
-                        ? null
-                        : () => Navigator.of(context).pop(),
-                    child: Text(widget.strings.t('common.cancel')),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(widget.strings.t('common.add')),
-                  ),
-                ),
+                _buildManualForm(context, bottomInset, strings),
+                _buildScanTab(context, strings),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildManualForm(BuildContext context, double bottomInset, AppStrings strings) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(controller: _nameController, decoration: InputDecoration(labelText: strings.t('medicines.formName'))),
+          const SizedBox(height: 10),
+          TextField(controller: _ingredientController, decoration: InputDecoration(labelText: strings.t('medicines.formIngredient'))),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextField(controller: _quantityController, decoration: InputDecoration(labelText: strings.t('medicines.formQuantity')), keyboardType: TextInputType.number)),
+            const SizedBox(width: 10),
+            Expanded(child: TextField(controller: _unitController, decoration: InputDecoration(labelText: strings.t('medicines.formUnit')))),
+          ]),
+          const SizedBox(height: 10),
+          TextField(controller: _barcodeController, decoration: InputDecoration(labelText: strings.t('medicines.formBarcode')), keyboardType: TextInputType.number),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: _pickExpiryDate, icon: const Icon(Icons.event_outlined), label: Text(_expiresAt == null ? strings.t('medicines.pickExpiryDate') : _formatDate(_expiresAt!)))),
+            const SizedBox(width: 10),
+            Expanded(child: OutlinedButton.icon(onPressed: _pickReminderTime, icon: const Icon(Icons.schedule_outlined), label: Text(_reminderTime == null ? strings.t('medicines.pickReminderTime') : _formatTime(_reminderTime!)))),
+          ]),
+          const SizedBox(height: 10),
+          TextField(controller: _descriptionController, maxLines: 3, decoration: InputDecoration(labelText: strings.t('medicines.formDescription'))),
+          const SizedBox(height: 10),
+          TextField(controller: _contraController, maxLines: 3, decoration: InputDecoration(labelText: strings.t('medicines.formContra'))),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFFB71C1C))),
+          ],
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: OutlinedButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), child: Text(strings.t('common.cancel')))),
+            const SizedBox(width: 12),
+            Expanded(child: FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(strings.t('common.add')),
+            )),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanTab(BuildContext context, AppStrings strings) {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(strings.t('medicines.scanning'), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280))),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _scanning
+                  ? const Center(child: CircularProgressIndicator())
+                  : MobileScanner(
+                      controller: _scannerController,
+                      onDetect: _onBarcodeDetected,
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -2569,6 +2745,65 @@ class _InfoLine extends StatelessWidget {
             TextSpan(text: value),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _QuickScanScreen extends StatefulWidget {
+  const _QuickScanScreen({required this.strings});
+  final AppStrings strings;
+  @override
+  State<_QuickScanScreen> createState() => _QuickScanScreenState();
+}
+
+class _QuickScanScreenState extends State<_QuickScanScreen> {
+  final MobileScannerController _controller = MobileScannerController();
+  String? _result;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    final raw = capture.barcodes.firstOrNull?.rawValue;
+    if (raw == null || _result != null) return;
+    _controller.stop();
+    setState(() => _result = raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.strings.t('quickScan.title'))),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: MobileScanner(controller: _controller, onDetect: _result == null ? _onDetect : null),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: _result == null
+                  ? Center(child: Text(widget.strings.t('quickScan.desc'), textAlign: TextAlign.center))
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SelectableText(_result!, style: const TextStyle(fontFamily: 'monospace', fontSize: 14)),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () { setState(() => _result = null); _controller.start(); },
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: Text(widget.strings.t('common.retry')),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }

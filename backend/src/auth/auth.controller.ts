@@ -1,5 +1,5 @@
-import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
@@ -31,5 +31,12 @@ export class AuthController {
   @Get('me')
   getMe(@Req() req: Request & { user: AuthTokenPayload }) {
     return this.authService.getMe(req.user);
+  }
+
+  @ApiOperation({ summary: 'Get public medical profile for bystander / QR scan view.' })
+  @ApiParam({ name: 'userId', description: 'User UUID encoded in the QR code.' })
+  @Get('public/:userId')
+  getPublicProfile(@Param('userId') userId: string) {
+    return this.authService.getUserPublicById(userId);
   }
 }

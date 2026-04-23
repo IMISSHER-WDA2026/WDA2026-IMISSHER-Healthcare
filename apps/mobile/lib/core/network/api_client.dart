@@ -245,6 +245,7 @@ class ApiClient {
   Future<List<dynamic>> getMedicines({
     String? ownerId,
     bool mineOnly = false,
+    String? token,
   }) async {
     final queryParameters = <String, String>{};
 
@@ -260,7 +261,7 @@ class ApiClient {
         ? '/medicines'
         : '/medicines?${Uri(queryParameters: queryParameters).query}';
 
-    final body = await _request(path);
+    final body = await _request(path, token: token);
     if (body is List<dynamic>) {
       return body;
     }
@@ -310,7 +311,7 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>?> lookupMedicineByBarcode(String barcode) async {
+  Future<Map<String, dynamic>?> lookupMedicineByBarcode(String barcode, {String? token}) async {
     final code = barcode.trim();
     if (code.isEmpty) {
       throw ApiException('Barcode cannot be empty.');
@@ -318,6 +319,7 @@ class ApiClient {
 
     final payload = await _request(
       '/medicines/barcode/${Uri.encodeComponent(code)}',
+      token: token,
       allow404: true,
     );
 

@@ -8,20 +8,34 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   StreamableFile,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Request } from 'express';
+import { AuthTokenPayload } from '../auth/interfaces/auth-payload.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UploadsService } from './uploads.service';
 import { CreateUploadDto } from './dto/create-upload.dto';
 import { UploadCategory } from './dto/create-upload.dto';
 import { UpdateUploadDto } from './dto/update-upload.dto';
 
 @ApiTags('Uploads')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('uploads')
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) { }
@@ -44,7 +58,11 @@ export class UploadsController {
       required: ['file'],
     },
   })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 20 * 1024 * 1024 },
+    }),
+  )
   @Post()
   create(
     @Body() createUploadDto: CreateUploadDto,
@@ -76,11 +94,12 @@ export class UploadsController {
 
   @ApiOperation({ summary: 'Download or stream uploaded file by id.' })
   @Get(':id/content')
-  getContent(
+  async getContent(
     @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: AuthTokenPayload },
     @Res({ passthrough: true }) response: Response,
   ) {
-    const file = this.uploadsService.getFileContent(id);
+    const file = await this.uploadsService.getFileContent(id, req.user?.sub);
     response.setHeader('Content-Type', file.mimeType);
     response.setHeader('Content-Disposition', `inline; filename="${file.fileName}"`);
     return new StreamableFile(file.buffer);

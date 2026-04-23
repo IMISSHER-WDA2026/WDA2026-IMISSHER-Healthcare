@@ -22,6 +22,18 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('/health (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          status: 'ok',
+          environment: expect.any(String),
+        });
+      });
+  });
+
   afterEach(async () => {
     await app.close();
   });

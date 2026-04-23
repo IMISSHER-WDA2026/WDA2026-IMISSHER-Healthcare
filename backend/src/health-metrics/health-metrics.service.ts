@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { JsonPersistenceStore } from '../common/persistence/json-persistence.store';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import {
   CreateHealthMetricDto,
   HealthMetricSource,
   HealthMetricType,
 } from './dto/create-health-metric.dto';
 import { UpdateHealthMetricDto } from './dto/update-health-metric.dto';
+import { HealthMetric } from './entities/health-metric.entity';
 
 export interface HealthMetricRecord {
   id: number;
@@ -28,111 +30,109 @@ interface MetricFilters {
 
 @Injectable()
 export class HealthMetricsService {
-  private readonly records = new Map<number, HealthMetricRecord>();
-  private nextMetricId: number;
-  private readonly store = new JsonPersistenceStore<HealthMetricRecord>(
-    'health-metrics-records.json',
-  );
+  constructor(
+    @InjectRepository(HealthMetric)
+    private readonly metricsRepository: Repository<HealthMetric>,
+  ) { }
 
-  constructor() {
-    const persistedRecords = this.store.load();
-    for (const record of persistedRecords) {
-      this.records.set(record.id, record);
-    }
-
-    this.nextMetricId = this.store.nextId(persistedRecords);
-  }
-
-  create(createHealthMetricDto: CreateHealthMetricDto): HealthMetricRecord {
-    const now = new Date().toISOString();
-    const record: HealthMetricRecord = {
-      id: this.nextMetricId,
+  async create(createHealthMetricDto: CreateHealthMetricDto): Promise<HealthMetricRecord> {
+    const now = new Date();
+    const record = this.metricsRepository.create({
       userId: createHealthMetricDto.userId,
       metricType: createHealthMetricDto.metricType,
       value: createHealthMetricDto.value,
       unit:
-        createHealthMetricDto.unit?.trim() || this.getDefaultUnit(createHealthMetricDto.metricType),
-      measuredAt: createHealthMetricDto.measuredAt ?? now,
+        createHealthMetricDto.unit?.trim() ||
+        this.getDefaultUnit(createHealthMetricDto.metricType),
+      measuredAt: createHealthMetricDto.measuredAt
+        ? new Date(createHealthMetricDto.measuredAt)
+        : now,
       source: createHealthMetricDto.source ?? HealthMetricSource.MANUAL,
-      note: createHealthMetricDto.note,
-      createdAt: now,
-      updatedAt: now,
-    };
+      note: createHealthMetricDto.note?.trim() || null,
+    });
 
-    this.records.set(record.id, record);
-    this.nextMetricId += 1;
-    this.persist();
-    return record;
+    const savedRecord = await this.metricsRepository.save(record);
+    return this.toRecord(savedRecord);
   }
 
-  findAll(filters: MetricFilters = {}): HealthMetricRecord[] {
-    const filtered = Array.from(this.records.values())
-      .filter((record) => {
-        if (filters.userId && record.userId !== filters.userId) {
-          return false;
-        }
+  async findAll(filters: MetricFilters = {}): Promise<HealthMetricRecord[]> {
+    const query = this.metricsRepository.createQueryBuilder('metric');
 
-        if (filters.metricType && record.metricType !== filters.metricType) {
-          return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
-
-    if (filters.limit && filters.limit > 0) {
-      return filtered.slice(0, filters.limit);
+    if (filters.userId) {
+      query.andWhere('metric.userId = :userId', { userId: filters.userId });
     }
 
-    return filtered;
+    if (filters.metricType) {
+      query.andWhere('metric.metricType = :metricType', {
+        metricType: filters.metricType,
+      });
+    }
+
+    query.orderBy('metric.measuredAt', 'DESC');
+
+    if (filters.limit && filters.limit > 0) {
+      query.take(filters.limit);
+    }
+
+    const records = await query.getMany();
+    return records.map((record) => this.toRecord(record));
   }
 
-  findOne(id: number): HealthMetricRecord {
-    const record = this.records.get(id);
+  async findOne(id: number): Promise<HealthMetricRecord> {
+    const record = await this.metricsRepository.findOne({ where: { id } });
     if (!record) {
       throw new NotFoundException(`Health metric #${id} not found.`);
     }
 
-    return record;
+    return this.toRecord(record);
   }
 
-  update(id: number, updateHealthMetricDto: UpdateHealthMetricDto): HealthMetricRecord {
-    const existing = this.findOne(id);
+  async update(
+    id: number,
+    updateHealthMetricDto: UpdateHealthMetricDto,
+  ): Promise<HealthMetricRecord> {
+    const existing = await this.metricsRepository.findOne({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Health metric #${id} not found.`);
+    }
+
     const nextMetricType = updateHealthMetricDto.metricType ?? existing.metricType;
 
-    const updated: HealthMetricRecord = {
-      ...existing,
-      ...updateHealthMetricDto,
-      metricType: nextMetricType,
-      unit:
-        updateHealthMetricDto.unit?.trim() ||
-        (updateHealthMetricDto.metricType
-          ? this.getDefaultUnit(updateHealthMetricDto.metricType)
-          : existing.unit),
-      measuredAt: updateHealthMetricDto.measuredAt ?? existing.measuredAt,
-      source: updateHealthMetricDto.source ?? existing.source,
-      updatedAt: new Date().toISOString(),
-    };
+    existing.userId = updateHealthMetricDto.userId ?? existing.userId;
+    existing.metricType = nextMetricType;
+    existing.value = updateHealthMetricDto.value ?? existing.value;
+    existing.unit =
+      updateHealthMetricDto.unit !== undefined
+        ? updateHealthMetricDto.unit.trim() || this.getDefaultUnit(nextMetricType)
+        : updateHealthMetricDto.metricType
+          ? this.getDefaultUnit(nextMetricType)
+          : existing.unit;
+    existing.measuredAt = updateHealthMetricDto.measuredAt
+      ? new Date(updateHealthMetricDto.measuredAt)
+      : existing.measuredAt;
+    existing.source = updateHealthMetricDto.source ?? existing.source;
 
-    this.records.set(id, updated);
-    this.persist();
-    return updated;
+    if (updateHealthMetricDto.note !== undefined) {
+      existing.note = updateHealthMetricDto.note.trim() || null;
+    }
+
+    const savedRecord = await this.metricsRepository.save(existing);
+    return this.toRecord(savedRecord);
   }
 
-  remove(id: number): { deleted: true } {
-    this.findOne(id);
-    this.records.delete(id);
-    this.persist();
+  async remove(id: number): Promise<{ deleted: true }> {
+    await this.findOne(id);
+    await this.metricsRepository.delete({ id });
     return { deleted: true };
   }
 
-  getSummaryByUser(userId: string): {
+  async getSummaryByUser(userId: string): Promise<{
     userId: string;
     totalRecords: number;
     latestByType: Partial<Record<HealthMetricType, HealthMetricRecord>>;
     latestMeasuredAt: string | null;
-  } {
-    const records = this.findAll({ userId });
+  }> {
+    const records = await this.findAll({ userId });
     const latestByType: Partial<Record<HealthMetricType, HealthMetricRecord>> = {};
 
     for (const record of records) {
@@ -146,6 +146,21 @@ export class HealthMetricsService {
       totalRecords: records.length,
       latestByType,
       latestMeasuredAt: records[0]?.measuredAt ?? null,
+    };
+  }
+
+  private toRecord(record: HealthMetric): HealthMetricRecord {
+    return {
+      id: record.id,
+      userId: record.userId,
+      metricType: record.metricType,
+      value: Number(record.value),
+      unit: record.unit,
+      measuredAt: record.measuredAt.toISOString(),
+      source: record.source,
+      note: record.note ?? undefined,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
     };
   }
 
@@ -169,9 +184,5 @@ export class HealthMetricsService {
       default:
         return '';
     }
-  }
-
-  private persist() {
-    this.store.save(Array.from(this.records.values()));
   }
 }

@@ -9,19 +9,24 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { HealthMetricsService } from './health-metrics.service';
 import { CreateHealthMetricDto, HealthMetricType } from './dto/create-health-metric.dto';
 import { UpdateHealthMetricDto } from './dto/update-health-metric.dto';
 
 @ApiTags('Health Metrics')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('health-metrics')
 export class HealthMetricsController {
   constructor(private readonly healthMetricsService: HealthMetricsService) { }

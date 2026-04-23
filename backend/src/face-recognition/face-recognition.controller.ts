@@ -9,16 +9,27 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FaceRecognitionService } from './face-recognition.service';
 import { CreateFaceRecognitionDto } from './dto/create-face-recognition.dto';
 import { FaceRecognitionSource } from './dto/create-face-recognition.dto';
 import { UpdateFaceRecognitionDto } from './dto/update-face-recognition.dto';
 
 @ApiTags('Face Recognition')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('face-recognition')
 export class FaceRecognitionController {
   constructor(private readonly faceRecognitionService: FaceRecognitionService) { }

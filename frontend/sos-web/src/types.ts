@@ -14,3 +14,20 @@ export interface CreateSosIncidentPayload {
     triggerSource: string;
     note?: string;
 }
+
+export interface EmergencyContact {
+    name: string;
+    phone: string;
+}
+
+export interface PublicUserProfile {
+    id: string;
+    fullName: string;
+    phone?: string;
+    bloodType?: string;
+    allergies?: string;
+    chronicConditions?: string;
+    emergencyContacts?: EmergencyContact[];
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+}
