@@ -20,7 +20,7 @@ jobs:
           git config --global user.name "GitHub Action"
 
           # Clone the empty Hugging Face space
-          git clone https://user:$HF_TOKEN@huggingface.co/spaces/penguneedLLM/healthcare-face-service hf-space
+          git clone https://user:$HF_TOKEN@huggingface.co/spaces/penguneedLLM/healthcare-face-api hf-space
 
           # Sync the contents of the face folder into the Space, excluding git history
           rsync -av --delete ai/spaces/face/ hf-space/ --exclude .git/

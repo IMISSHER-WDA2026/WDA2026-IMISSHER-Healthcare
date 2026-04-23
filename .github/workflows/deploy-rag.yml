@@ -22,7 +22,7 @@ jobs:
           git config --global user.name "GitHub Action"
           
           # Clone the empty Hugging Face RAG space
-          git clone https://user:$HF_TOKEN@huggingface.co/spaces/penguneedLLM/healthcare-rag-service hf-space
+          git clone https://user:$HF_TOKEN@huggingface.co/spaces/penguneedLLM/healthcare-rag-api hf-space
           
           # Sync the RAG app files
           rsync -av --delete ai/spaces/rag/ hf-space/ --exclude .git/
