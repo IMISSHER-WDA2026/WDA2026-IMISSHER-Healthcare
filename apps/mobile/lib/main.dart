@@ -1439,6 +1439,53 @@ class _SosScreenState extends State<SosScreen> {
                       widget.session.chronicConditions ??
                       strings.t('common.notProvided'),
                 ),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: widget.session.userId),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('User ID copied.')),
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(color: const Color(0xFF111827)),
+                              children: [
+                                const TextSpan(
+                                  text: 'User ID: ',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                TextSpan(
+                                  text: widget.session.userId,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 12,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.copy,
+                          size: 16,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

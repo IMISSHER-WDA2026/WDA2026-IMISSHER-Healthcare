@@ -52,8 +52,7 @@ export class ChatbotService {
   private buildLocalAnswer(message: string, contexts: KnowledgeEntry[]): string {
     if (contexts.length === 0) {
       return (
-        'Tôi chưa tìm thấy nội dung sơ cứu phù hợp trong cơ sở tri thức nội bộ. ' +
-        'Với tình huống khẩn cấp, hãy gọi 115 ngay và làm theo hướng dẫn của nhân viên y tế.'
+        'I am a medical assistant. Please ask me questions related to first aid or healthcare.'
       );
     }
 
@@ -90,7 +89,7 @@ export class ChatbotService {
       .slice(0, limit)
       .map((item) => item.entry);
 
-    return scored.length > 0 ? scored : this.knowledgeBase.slice(0, limit);
+    return scored;
   }
 
   private normalizeText(value: string): string {
@@ -254,6 +253,7 @@ export class ChatbotService {
 
   private resolveDataFile(fileName: string): string | null {
     const candidates = [
+      resolve('/opt/healthcare-ai-data', fileName),
       resolve(process.cwd(), '../ai/data', fileName),
       resolve(process.cwd(), 'ai/data', fileName),
     ];

@@ -13,7 +13,7 @@ services:
       - key: PORT
         value: 3000
       - key: TYPEORM_SYNCHRONIZE
-        value: "true"
+        value: "false"
       - key: DB_SSL
         value: "true"
       - key: CORS_ORIGIN
