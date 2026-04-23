@@ -608,7 +608,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final items = await widget.apiClient.getMedicines(
-        ownerId: widget.session.userId,
         mineOnly: true,
         token: widget.session.token,
       );
@@ -1927,7 +1926,6 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
 
     try {
       final items = await widget.apiClient.getMedicines(
-        ownerId: widget.session.userId,
         mineOnly: true,
         token: widget.session.token,
       );
@@ -2330,7 +2328,6 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet>
       final quantity = int.tryParse(_quantityController.text.trim());
       await widget.apiClient.createMedicine(
         token: widget.session.token,
-        ownerId: widget.session.userId,
         name: _nameController.text,
         activeIngredient: _ingredientController.text,
         barcode: _barcodeController.text,

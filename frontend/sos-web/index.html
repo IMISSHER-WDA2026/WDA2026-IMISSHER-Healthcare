@@ -53,21 +53,10 @@
             <p id="alertStatus" class="status" aria-live="polite"></p>
         </section>
 
-        <section id="fallbackSection" class="card" style="display:none">
-            <h2 id="fallbackTitle">Nhập User ID</h2>
-            <p id="fallbackDesc">Không tìm thấy userId trong URL. Nhập thủ công để tiếp tục.</p>
-            <div class="field-group">
-                <label for="manualUserId" id="manualLabel">User ID</label>
-                <input id="manualUserId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-            </div>
-            <div class="field-group">
-                <label for="apiBaseUrlInput" id="apiUrlLabel">API Base URL</label>
-                <input id="apiBaseUrlInput" type="url" value="http://localhost:3000" />
-            </div>
-            <button id="lookupBtn" class="btn btn-primary" type="button">
-                <span id="lookupText">Tra cứu</span>
-            </button>
-            <p id="fallbackStatus" class="status" aria-live="polite"></p>
+        <section id="errorSection" class="card" style="display:none">
+            <h2 id="errorTitle">Liên kết không hợp lệ</h2>
+            <p id="errorMessage">Thiếu tham số userId trong URL. Vui lòng quét lại mã QR để tiếp tục.</p>
+            <p id="errorStatus" class="status" aria-live="polite"></p>
         </section>
 
     </main>

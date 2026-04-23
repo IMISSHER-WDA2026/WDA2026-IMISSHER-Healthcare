@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 RAG_MODEL_NAME = os.getenv("RAG_EMBEDDING_MODEL", "keepitreal/vietnamese-sbert").strip()
 RAG_TOP_K_DEFAULT = int(os.getenv("RAG_TOP_K_DEFAULT", "3"))
+RAG_EMBEDDING_CACHE_ENV = os.getenv("RAG_EMBEDDING_CACHE_PATH", "").strip()
 
 app = FastAPI(
     title="Healthcare RAG Answering Model",
@@ -53,6 +54,12 @@ def _resolve_data_file() -> Path | None:
     return None
 
 
+def _resolve_embedding_cache_path(data_file: Path) -> Path:
+    if RAG_EMBEDDING_CACHE_ENV:
+        return Path(RAG_EMBEDDING_CACHE_ENV)
+    return data_file.with_suffix(".embeddings.npy")
+
+
 def _load_knowledge_base() -> None:
     global _knowledge_rows
 
@@ -85,9 +92,29 @@ def _load_encoder_and_embeddings() -> None:
     from sentence_transformers import SentenceTransformer
 
     _encoder = SentenceTransformer(RAG_MODEL_NAME)
+
+    data_file = _resolve_data_file()
+    cache_path = _resolve_embedding_cache_path(data_file) if data_file else None
+
+    if cache_path and cache_path.exists():
+        try:
+            cached = np.load(cache_path)
+            if cached.shape[0] == len(_knowledge_rows):
+                _embedding_matrix = cached.astype(np.float32, copy=False)
+                return
+        except (OSError, ValueError):
+            pass
+
     corpus = [f"{row['title']}\n{row['content']}" for row in _knowledge_rows]
     embeddings = _encoder.encode(corpus, normalize_embeddings=True)
     _embedding_matrix = np.asarray(embeddings, dtype=np.float32)
+
+    if cache_path is not None:
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            np.save(cache_path, _embedding_matrix)
+        except OSError:
+            pass
 
 
 @app.on_event("startup")

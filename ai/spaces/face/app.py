@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Any
 
@@ -64,7 +65,7 @@ def _extract_embedding(payload: Any) -> list[float]:
     )
 
 
-def _compute_embedding(image_bytes: bytes) -> list[float]:
+def _compute_embedding_sync(image_bytes: bytes) -> list[float]:
     import cv2
     import numpy as np
     from deepface import DeepFace
@@ -81,6 +82,8 @@ def _compute_embedding(image_bytes: bytes) -> list[float]:
             model_name=FACE_MODEL_NAME,
             enforce_detection=FACE_ENFORCE_DETECTION,
         )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=500,
@@ -88,6 +91,10 @@ def _compute_embedding(image_bytes: bytes) -> list[float]:
         ) from exc
 
     return _extract_embedding(output)
+
+
+async def _compute_embedding(image_bytes: bytes) -> list[float]:
+    return await asyncio.to_thread(_compute_embedding_sync, image_bytes)
 
 
 @app.get("/healthz")
@@ -112,7 +119,7 @@ async def recognize_face(file: UploadFile = File(...)) -> dict[str, Any]:
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail="Image exceeds maximum allowed size.")
 
-    vector = _compute_embedding(image_bytes)
+    vector = await _compute_embedding(image_bytes)
 
     return {
         "status": "success",

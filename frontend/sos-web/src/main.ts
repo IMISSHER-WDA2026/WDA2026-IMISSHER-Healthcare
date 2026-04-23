@@ -14,7 +14,7 @@ const strings: Record<Lang, Record<string, string>> = {
         heroTitle: 'Thông tin y tế khẩn cấp',
         heroDesc: 'Trang này cho phép người xung quanh xem hồ sơ y tế và gửi cảnh báo tới hệ thống.',
         loading: 'Đang tải thông tin...',
-        errorLoad: 'Không thể tải thông tin. Kiểm tra lại kết nối hoặc userId.',
+        errorLoad: 'Không thể tải thông tin. Vui lòng kiểm tra lại kết nối.',
         bloodType: 'Nhóm máu',
         allergies: 'Dị ứng',
         conditions: 'Bệnh nền',
@@ -27,11 +27,8 @@ const strings: Record<Lang, Record<string, string>> = {
         sending: 'Đang gửi...',
         alertSuccess: 'Đã gửi cảnh báo SOS thành công!',
         alertError: 'Không thể gửi cảnh báo.',
-        fallbackTitle: 'Nhập User ID',
-        fallbackDesc: 'Không tìm thấy userId trong URL. Nhập thủ công để tiếp tục.',
-        manualLabel: 'User ID',
-        apiUrlLabel: 'API Base URL',
-        lookupText: 'Tra cứu',
+        errorTitle: 'Liên kết không hợp lệ',
+        errorMissingUserId: 'Thiếu tham số userId trong URL. Vui lòng quét lại mã QR để tiếp tục.',
         notProvided: 'Chưa cập nhật',
     },
     en: {
@@ -39,7 +36,7 @@ const strings: Record<Lang, Record<string, string>> = {
         heroTitle: 'Emergency Medical Profile',
         heroDesc: 'This page lets bystanders view the patient\'s medical profile and send an SOS alert.',
         loading: 'Loading information...',
-        errorLoad: 'Could not load profile. Check your connection or userId.',
+        errorLoad: 'Could not load profile. Please check your connection.',
         bloodType: 'Blood type',
         allergies: 'Allergies',
         conditions: 'Conditions',
@@ -52,11 +49,8 @@ const strings: Record<Lang, Record<string, string>> = {
         sending: 'Sending...',
         alertSuccess: 'SOS alert sent successfully!',
         alertError: 'Could not send alert.',
-        fallbackTitle: 'Enter User ID',
-        fallbackDesc: 'No userId found in URL. Enter it manually to continue.',
-        manualLabel: 'User ID',
-        apiUrlLabel: 'API Base URL',
-        lookupText: 'Look up',
+        errorTitle: 'Invalid link',
+        errorMissingUserId: 'Missing userId parameter in the URL. Please scan the QR code again to continue.',
         notProvided: 'Not provided',
     },
 };
@@ -73,8 +67,8 @@ function t(key: string): string {
 
 let currentUserId = '';
 let currentProfile: PublicUserProfile | null = null;
-let apiBaseUrl = normalizeApiBaseUrl(
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000',
+const apiBaseUrl = normalizeApiBaseUrl(
+    (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '',
 );
 
 // ---------------------------------------------------------------------------
@@ -168,18 +162,27 @@ function escapeHtml(str: string): string {
 // Load profile
 // ---------------------------------------------------------------------------
 
+function showInvalidLinkError() {
+    hideEl('profileSection');
+    hideEl('actionSection');
+    showEl('errorSection');
+    setStatus('errorStatus', '');
+}
+
 async function loadProfile(userId: string) {
-    setStatus('fallbackStatus', t('loading'));
     try {
         const profile = await fetchPublicProfile(apiBaseUrl, userId);
         currentProfile = profile;
         currentUserId = userId;
         renderProfile(profile);
         showEl('actionSection');
-        hideEl('fallbackSection');
+        hideEl('errorSection');
     } catch (error) {
         const message = error instanceof Error ? error.message : t('errorLoad');
-        setStatus('fallbackStatus', message, true);
+        showEl('errorSection');
+        hideEl('profileSection');
+        hideEl('actionSection');
+        setStatus('errorStatus', message, true);
     }
 }
 
@@ -219,11 +222,8 @@ function applyLanguage() {
     el('alertNoteLabel').textContent = t('alertNoteLabel');
     el<HTMLTextAreaElement>('alertNote').placeholder = t('alertNotePlaceholder');
     el('sendAlertText').textContent = t('sendAlertText');
-    el('fallbackTitle').textContent = t('fallbackTitle');
-    el('fallbackDesc').textContent = t('fallbackDesc');
-    el('manualLabel').textContent = t('manualLabel');
-    el('apiUrlLabel').textContent = t('apiUrlLabel');
-    el('lookupText').textContent = t('lookupText');
+    el('errorTitle').textContent = t('errorTitle');
+    el('errorMessage').textContent = t('errorMissingUserId');
     el('langToggleBtn').textContent = currentLang === 'vi' ? 'EN' : 'VI';
 
     if (currentProfile) {
@@ -242,28 +242,15 @@ el('langToggleBtn').addEventListener('click', () => {
 
 el('sendAlertBtn').addEventListener('click', () => void sendAlert());
 
-el('lookupBtn').addEventListener('click', () => {
-    const manualId = el<HTMLInputElement>('manualUserId').value.trim();
-    const rawApiUrl = el<HTMLInputElement>('apiBaseUrlInput').value.trim();
-    if (rawApiUrl) {
-        apiBaseUrl = normalizeApiBaseUrl(rawApiUrl);
-    }
-    if (!manualId) {
-        setStatus('fallbackStatus', 'Please enter a User ID.', true);
-        return;
-    }
-    void loadProfile(manualId);
-});
-
 function init() {
     const params = new URLSearchParams(window.location.search);
     const userIdFromUrl = params.get('userId')?.trim();
 
     if (userIdFromUrl) {
-        hideEl('fallbackSection');
+        hideEl('errorSection');
         void loadProfile(userIdFromUrl);
     } else {
-        showEl('fallbackSection');
+        showInvalidLinkError();
     }
 }
 

@@ -1,8 +1,16 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { extname, resolve } from 'node:path';
+import { extname } from 'node:path';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Repository } from 'typeorm';
 import { CreateUploadDto } from './dto/create-upload.dto';
 import { UploadCategory } from './dto/create-upload.dto';
@@ -33,25 +41,45 @@ export interface UploadRecord {
   storedName: string;
   mimeType: string;
   size: number;
-  absolutePath: string;
+  storagePath: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface UploadResponse extends Omit<UploadRecord, 'absolutePath'> {
+export interface UploadResponse extends Omit<UploadRecord, 'storagePath'> {
   contentUrl: string;
 }
 
 @Injectable()
-export class UploadsService {
-  private readonly uploadDirectory = this.resolveUploadDirectory();
+export class UploadsService implements OnModuleInit {
+  private readonly logger = new Logger(UploadsService.name);
+  private readonly supabaseBucket =
+    process.env.SUPABASE_UPLOADS_BUCKET?.trim() || 'uploads';
+  private readonly supabaseUrl = process.env.SUPABASE_URL?.trim() || '';
+  private readonly supabaseServiceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_KEY?.trim() ||
+    '';
+  private readonly supabase: SupabaseClient | null;
 
   constructor(
     @InjectRepository(Upload)
     private readonly uploadsRepository: Repository<Upload>,
   ) {
-    if (!existsSync(this.uploadDirectory)) {
-      mkdirSync(this.uploadDirectory, { recursive: true });
+    if (this.supabaseUrl && this.supabaseServiceKey) {
+      this.supabase = createClient(this.supabaseUrl, this.supabaseServiceKey, {
+        auth: { persistSession: false },
+      });
+    } else {
+      this.supabase = null;
+    }
+  }
+
+  onModuleInit(): void {
+    if (!this.supabase) {
+      this.logger.warn(
+        'Supabase storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to enable uploads.',
+      );
     }
   }
 
@@ -59,15 +87,30 @@ export class UploadsService {
     createUploadDto: CreateUploadDto,
     file?: UploadedFileInput,
   ): Promise<UploadResponse> {
+    const supabase = this.requireSupabase();
     const normalizedFile = this.assertAndNormalizeFile(file);
     const extension = this.resolveFileExtension(
       normalizedFile.originalName,
       normalizedFile.mimeType,
     );
     const storedName = `${Date.now()}-${randomUUID()}${extension}`;
-    const absolutePath = resolve(this.uploadDirectory, storedName);
+    const storagePath = this.buildStoragePath(
+      createUploadDto.userId ?? undefined,
+      storedName,
+    );
 
-    writeFileSync(absolutePath, normalizedFile.buffer);
+    const { error: uploadError } = await supabase.storage
+      .from(this.supabaseBucket)
+      .upload(storagePath, normalizedFile.buffer, {
+        contentType: normalizedFile.mimeType,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new InternalServerErrorException(
+        `Failed to upload file to storage: ${uploadError.message}`,
+      );
+    }
 
     const record = this.uploadsRepository.create({
       userId: createUploadDto.userId,
@@ -81,11 +124,16 @@ export class UploadsService {
       storedName,
       mimeType: normalizedFile.mimeType,
       size: normalizedFile.size,
-      absolutePath,
+      absolutePath: storagePath,
     });
 
-    const savedRecord = await this.uploadsRepository.save(record);
-    return this.toResponse(savedRecord);
+    try {
+      const savedRecord = await this.uploadsRepository.save(record);
+      return this.toResponse(savedRecord);
+    } catch (error) {
+      await supabase.storage.from(this.supabaseBucket).remove([storagePath]);
+      throw error;
+    }
   }
 
   async findAll(userId?: string): Promise<UploadResponse[]> {
@@ -125,19 +173,22 @@ export class UploadsService {
 
   async remove(id: number): Promise<{ deleted: true }> {
     const existing = await this.findOneRecord(id);
+    const supabase = this.requireSupabase();
 
-    if (existsSync(existing.absolutePath)) {
-      rmSync(existing.absolutePath, { force: true });
+    const { error: removeError } = await supabase.storage
+      .from(this.supabaseBucket)
+      .remove([existing.absolutePath]);
+
+    if (removeError) {
+      this.logger.warn(
+        `Failed to delete storage object ${existing.absolutePath}: ${removeError.message}`,
+      );
     }
 
     await this.uploadsRepository.delete({ id });
     return { deleted: true };
   }
 
-  // TODO: writeFileSync stores uploads on the local filesystem. On Render's
-  // ephemeral disk this means all files are lost on every deploy. Migrate to
-  // an object storage provider (S3, Firebase Storage, or Supabase Storage) and
-  // replace the writeFileSync/readFileSync/rmSync calls with SDK equivalents.
   async getFileContent(
     id: number,
     requestingUserId?: string,
@@ -152,19 +203,27 @@ export class UploadsService {
       throw new ForbiddenException('You do not have permission to access this file.');
     }
 
-    if (!existsSync(record.absolutePath)) {
-      throw new NotFoundException(`Upload file for record #${id} does not exist.`);
+    const supabase = this.requireSupabase();
+    const { data, error } = await supabase.storage
+      .from(this.supabaseBucket)
+      .download(record.absolutePath);
+
+    if (error || !data) {
+      throw new NotFoundException(
+        `Upload file for record #${id} could not be retrieved from storage.`,
+      );
     }
 
+    const arrayBuffer = await data.arrayBuffer();
     return {
       fileName: record.originalName,
       mimeType: record.mimeType,
-      buffer: readFileSync(record.absolutePath),
+      buffer: Buffer.from(arrayBuffer),
     };
   }
 
   private toResponse(record: Upload): UploadResponse {
-    const serialized: UploadRecord = {
+    const { absolutePath, ...rest } = {
       id: record.id,
       userId: record.userId ?? undefined,
       category: record.category,
@@ -178,8 +237,6 @@ export class UploadsService {
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
-
-    const { absolutePath, ...rest } = serialized;
     void absolutePath;
 
     return {
@@ -214,13 +271,9 @@ export class UploadsService {
     };
   }
 
-  private resolveUploadDirectory(): string {
-    const configuredDirectory = process.env.HEALTHCARE_UPLOAD_DIR;
-    if (configuredDirectory) {
-      return resolve(process.cwd(), configuredDirectory);
-    }
-
-    return resolve(process.cwd(), '.runtime-data', 'uploads');
+  private buildStoragePath(userId: string | undefined, storedName: string): string {
+    const prefix = userId?.trim() ? userId.trim() : 'anonymous';
+    return `${prefix}/${storedName}`;
   }
 
   private resolveFileExtension(originalName: string, mimeType: string): string {
@@ -237,5 +290,14 @@ export class UploadsService {
     ]);
 
     return mimeToExtension.get(mimeType) ?? '.bin';
+  }
+
+  private requireSupabase(): SupabaseClient {
+    if (!this.supabase) {
+      throw new InternalServerErrorException(
+        'Supabase storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+      );
+    }
+    return this.supabase;
   }
 }

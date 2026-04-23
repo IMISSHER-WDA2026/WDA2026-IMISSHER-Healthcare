@@ -5,7 +5,6 @@ import {
     IsInt,
     IsOptional,
     IsString,
-    IsUUID,
     Matches,
     Max,
     MaxLength,
@@ -70,15 +69,6 @@ export class CreateMedicineDto {
     @IsString()
     @MaxLength(2000)
     contraindications?: string;
-
-    @ApiPropertyOptional({
-        description: 'ID người dùng sở hữu thuốc trong tủ thuốc cá nhân.',
-        example: '061b9900-b756-4a44-a534-e0c2e09866f9',
-    })
-    @Transform(trimText)
-    @IsOptional()
-    @IsUUID('4')
-    ownerId?: string;
 
     @ApiPropertyOptional({
         description: 'Số lượng thuốc hiện có.',

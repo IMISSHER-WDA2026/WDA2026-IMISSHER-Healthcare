@@ -243,24 +243,10 @@ class ApiClient {
   }
 
   Future<List<dynamic>> getMedicines({
-    String? ownerId,
     bool mineOnly = false,
     String? token,
   }) async {
-    final queryParameters = <String, String>{};
-
-    final normalizedOwnerId = ownerId?.trim();
-    if (normalizedOwnerId != null && normalizedOwnerId.isNotEmpty) {
-      queryParameters['ownerId'] = normalizedOwnerId;
-    }
-    if (mineOnly) {
-      queryParameters['mineOnly'] = 'true';
-    }
-
-    final path = queryParameters.isEmpty
-        ? '/medicines'
-        : '/medicines?${Uri(queryParameters: queryParameters).query}';
-
+    final path = mineOnly ? '/medicines?mineOnly=true' : '/medicines';
     final body = await _request(path, token: token);
     if (body is List<dynamic>) {
       return body;
@@ -270,7 +256,6 @@ class ApiClient {
 
   Future<Map<String, dynamic>> createMedicine({
     required String token,
-    required String ownerId,
     required String name,
     String? activeIngredient,
     String? barcode,
@@ -292,7 +277,6 @@ class ApiClient {
       token: token,
       body: {
         'name': normalizedName,
-        'ownerId': ownerId,
         ...?_optionalEntry(
           'active_ingredient',
           _sanitizeOptionalText(activeIngredient),

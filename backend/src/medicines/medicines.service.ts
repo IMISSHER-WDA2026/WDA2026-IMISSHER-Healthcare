@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -45,15 +46,23 @@ export class MedicinesService {
     this.loadMedicineCatalog();
   }
 
-  async create(createMedicineDto: CreateMedicineDto): Promise<CustomMedicineRecord> {
+  async create(
+    currentUserId: string,
+    createMedicineDto: CreateMedicineDto,
+  ): Promise<CustomMedicineRecord> {
     const name = createMedicineDto.name.trim();
     if (!name) {
       throw new BadRequestException('Medicine name is required.');
     }
 
     const barcode = createMedicineDto.barcode?.trim() ?? '';
-    if (barcode && (await this.findByBarcode(barcode))) {
-      throw new ConflictException('A medicine with this barcode already exists.');
+    if (barcode) {
+      const existingOwned = await this.customMedicineRepository.findOne({
+        where: { barcode, ownerId: currentUserId },
+      });
+      if (existingOwned) {
+        throw new ConflictException('A medicine with this barcode already exists.');
+      }
     }
 
     const record = this.customMedicineRepository.create({
@@ -63,7 +72,7 @@ export class MedicinesService {
       barcode,
       description: this.normalizeOptionalText(createMedicineDto.description),
       contraindications: this.normalizeOptionalText(createMedicineDto.contraindications),
-      ownerId: this.normalizeOptionalText(createMedicineDto.ownerId),
+      ownerId: currentUserId,
       quantity: this.normalizeOptionalNumber(createMedicineDto.quantity),
       unit: this.normalizeOptionalText(createMedicineDto.unit),
       expiresAt: this.normalizeOptionalText(createMedicineDto.expiresAt),
@@ -74,15 +83,14 @@ export class MedicinesService {
     return this.toCustomMedicineRecord(savedRecord);
   }
 
-  async findAll(options?: { ownerId?: string; mineOnly?: boolean }): Promise<MedicineMetadata[]> {
-    const ownerId = options?.ownerId?.trim();
-
-    const customMedicineEntities = ownerId
-      ? await this.customMedicineRepository.find({
-        where: { ownerId },
-        order: { createdAt: 'DESC' },
-      })
-      : await this.customMedicineRepository.find({ order: { createdAt: 'DESC' } });
+  async findAll(
+    currentUserId: string,
+    options?: { mineOnly?: boolean },
+  ): Promise<MedicineMetadata[]> {
+    const customMedicineEntities = await this.customMedicineRepository.find({
+      where: { ownerId: currentUserId },
+      order: { createdAt: 'DESC' },
+    });
 
     const customMedicines = customMedicineEntities.map((record) =>
       this.toCustomMedicineRecord(record),
@@ -95,37 +103,49 @@ export class MedicinesService {
     return [...this.catalogMedicines, ...customMedicines];
   }
 
-  async findOne(id: number): Promise<CustomMedicineRecord> {
+  async findOne(currentUserId: string, id: number): Promise<CustomMedicineRecord> {
     const record = await this.customMedicineRepository.findOne({ where: { id } });
     if (!record) {
       throw new NotFoundException(`Custom medicine #${id} not found.`);
     }
 
+    this.assertOwnership(record, currentUserId);
     return this.toCustomMedicineRecord(record);
   }
 
-  async findByBarcode(barcode: string): Promise<MedicineMetadata | null> {
+  async findByBarcode(
+    barcode: string,
+    currentUserId?: string,
+  ): Promise<MedicineMetadata | null> {
     const normalized = barcode.trim();
     if (!normalized) {
       return null;
     }
 
-    const customMedicine = await this.customMedicineRepository.findOne({
-      where: { barcode: normalized },
-    });
+    if (currentUserId) {
+      const ownedCustom = await this.customMedicineRepository.findOne({
+        where: { barcode: normalized, ownerId: currentUserId },
+      });
 
-    if (customMedicine) {
-      return this.toCustomMedicineRecord(customMedicine);
+      if (ownedCustom) {
+        return this.toCustomMedicineRecord(ownedCustom);
+      }
     }
 
     return this.catalogIndexByBarcode.get(normalized) ?? null;
   }
 
-  async update(id: number, updateMedicineDto: UpdateMedicineDto): Promise<CustomMedicineRecord> {
+  async update(
+    currentUserId: string,
+    id: number,
+    updateMedicineDto: UpdateMedicineDto,
+  ): Promise<CustomMedicineRecord> {
     const existing = await this.customMedicineRepository.findOne({ where: { id } });
     if (!existing) {
       throw new NotFoundException(`Custom medicine #${id} not found.`);
     }
+
+    this.assertOwnership(existing, currentUserId);
 
     const nextName = updateMedicineDto.name?.trim() ?? existing.name;
     if (!nextName) {
@@ -135,8 +155,10 @@ export class MedicinesService {
     const nextBarcode = updateMedicineDto.barcode?.trim() ?? existing.barcode;
 
     if (nextBarcode && nextBarcode !== existing.barcode) {
-      const barcodeCollision = await this.findByBarcode(nextBarcode);
-      if (barcodeCollision) {
+      const barcodeCollision = await this.customMedicineRepository.findOne({
+        where: { barcode: nextBarcode, ownerId: currentUserId },
+      });
+      if (barcodeCollision && barcodeCollision.id !== existing.id) {
         throw new ConflictException('A medicine with this barcode already exists.');
       }
     }
@@ -150,7 +172,7 @@ export class MedicinesService {
       description: updateMedicineDto.description?.trim() ?? existing.description,
       contraindications:
         updateMedicineDto.contraindications?.trim() ?? existing.contraindications,
-      ownerId: updateMedicineDto.ownerId?.trim() ?? existing.ownerId,
+      ownerId: existing.ownerId,
       quantity: updateMedicineDto.quantity ?? existing.quantity,
       unit: updateMedicineDto.unit?.trim() ?? existing.unit,
       expiresAt: updateMedicineDto.expiresAt?.trim() ?? existing.expiresAt,
@@ -161,10 +183,24 @@ export class MedicinesService {
     return this.toCustomMedicineRecord(savedRecord);
   }
 
-  async remove(id: number): Promise<{ deleted: true }> {
-    await this.findOne(id);
+  async remove(currentUserId: string, id: number): Promise<{ deleted: true }> {
+    const existing = await this.customMedicineRepository.findOne({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Custom medicine #${id} not found.`);
+    }
+
+    this.assertOwnership(existing, currentUserId);
+
     await this.customMedicineRepository.delete({ id });
     return { deleted: true };
+  }
+
+  private assertOwnership(record: Medicine, currentUserId: string): void {
+    if (!record.ownerId || record.ownerId !== currentUserId) {
+      throw new ForbiddenException(
+        'You do not have permission to access this medicine.',
+      );
+    }
   }
 
   private loadMedicineCatalog() {

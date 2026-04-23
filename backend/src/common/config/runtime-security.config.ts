@@ -1,4 +1,3 @@
-const DEFAULT_JWT_SECRET = 'healthcare-dev-secret';
 const DEFAULT_DATABASE_URL =
     'postgres://postgres:password123@localhost:5432/healthcare_local_db';
 
@@ -10,14 +9,9 @@ export function resolveJwtSecret(): string {
     const configuredSecret = process.env.JWT_SECRET?.trim();
 
     if (!configuredSecret) {
-        if (isProductionEnvironment()) {
-            throw new Error('JWT_SECRET must be set in production.');
-        }
-        return DEFAULT_JWT_SECRET;
-    }
-
-    if (isProductionEnvironment() && configuredSecret === DEFAULT_JWT_SECRET) {
-        throw new Error('JWT_SECRET cannot use the development default in production.');
+        throw new Error(
+            'JWT_SECRET must be set. Provide a strong random value (min 32 chars).',
+        );
     }
 
     if (isProductionEnvironment() && configuredSecret.length < 32) {
