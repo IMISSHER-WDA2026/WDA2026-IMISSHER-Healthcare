@@ -42,7 +42,7 @@ npm run test
 
 - Swagger: http://localhost:3000/api-docs
 - API markdown: [docs/API.md](docs/API.md)
-- Render + Supabase deploy guide: [docs/DEPLOY_RENDER_SUPABASE.md](docs/DEPLOY_RENDER_SUPABASE.md)
+- Standardized production deployment guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Database and Environment
 

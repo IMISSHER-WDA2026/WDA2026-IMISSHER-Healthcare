@@ -29,8 +29,13 @@ const elements = {
     refreshBtn: getElement<HTMLButtonElement>('refreshBtn'),
 };
 
+const configuredApiBaseUrl = normalizeApiBaseUrl(
+    (import.meta.env.VITE_API_BASE_URL as string | undefined) || elements.apiBaseUrl.value,
+);
+elements.apiBaseUrl.value = configuredApiBaseUrl;
+
 const state: AppState = {
-    apiBaseUrl: normalizeApiBaseUrl(elements.apiBaseUrl.value),
+    apiBaseUrl: configuredApiBaseUrl,
     incidents: [],
 };
 
