@@ -9,19 +9,24 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SosService } from './sos.service';
 import { CreateSosDto } from './dto/create-sos.dto';
 import { SosStatus, UpdateSosDto } from './dto/update-sos.dto';
 
 @ApiTags('SOS')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('sos')
 export class SosController {
   constructor(private readonly sosService: SosService) { }

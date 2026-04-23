@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
-import { JsonPersistenceStore } from '../common/persistence/json-persistence.store';
+import { Repository } from 'typeorm';
 import { CreateUploadDto } from './dto/create-upload.dto';
 import { UploadCategory } from './dto/create-upload.dto';
 import { UpdateUploadDto } from './dto/update-upload.dto';
+import { Upload } from './entities/upload.entity';
 
 interface UploadedFileInput {
   buffer: Buffer;
@@ -42,28 +44,21 @@ export interface UploadResponse extends Omit<UploadRecord, 'absolutePath'> {
 
 @Injectable()
 export class UploadsService {
-  private readonly records = new Map<number, UploadRecord>();
-  private nextUploadId: number;
-  private readonly store = new JsonPersistenceStore<UploadRecord>('uploads.json');
   private readonly uploadDirectory = this.resolveUploadDirectory();
 
-  constructor() {
+  constructor(
+    @InjectRepository(Upload)
+    private readonly uploadsRepository: Repository<Upload>,
+  ) {
     if (!existsSync(this.uploadDirectory)) {
       mkdirSync(this.uploadDirectory, { recursive: true });
     }
-
-    const persistedRecords = this.store.load();
-    for (const record of persistedRecords) {
-      this.records.set(record.id, record);
-    }
-
-    this.nextUploadId = this.store.nextId(persistedRecords);
   }
 
-  create(
+  async create(
     createUploadDto: CreateUploadDto,
     file?: UploadedFileInput,
-  ): UploadResponse {
+  ): Promise<UploadResponse> {
     const normalizedFile = this.assertAndNormalizeFile(file);
     const extension = this.resolveFileExtension(
       normalizedFile.originalName,
@@ -74,75 +69,77 @@ export class UploadsService {
 
     writeFileSync(absolutePath, normalizedFile.buffer);
 
-    const now = new Date().toISOString();
-    const record: UploadRecord = {
-      id: this.nextUploadId,
+    const record = this.uploadsRepository.create({
       userId: createUploadDto.userId,
       category: createUploadDto.category ?? UploadCategory.OTHER,
-      note: createUploadDto.note,
-      tags: createUploadDto.tags?.map((tag) => tag.trim()).filter((tag) => tag.length > 0),
+      note: createUploadDto.note?.trim() || null,
+      tags:
+        createUploadDto.tags
+          ?.map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0) ?? null,
       originalName: normalizedFile.originalName,
       storedName,
       mimeType: normalizedFile.mimeType,
       size: normalizedFile.size,
       absolutePath,
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
 
-    this.records.set(record.id, record);
-    this.nextUploadId += 1;
-    this.persist();
-    return this.toResponse(record);
+    const savedRecord = await this.uploadsRepository.save(record);
+    return this.toResponse(savedRecord);
   }
 
-  findAll(userId?: string): UploadResponse[] {
-    return Array.from(this.records.values())
-      .filter((record) => (userId ? record.userId === userId : true))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map((record) => this.toResponse(record));
+  async findAll(userId?: string): Promise<UploadResponse[]> {
+    const records = userId
+      ? await this.uploadsRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+      })
+      : await this.uploadsRepository.find({ order: { createdAt: 'DESC' } });
+
+    return records.map((record) => this.toResponse(record));
   }
 
-  findOne(id: number): UploadResponse {
-    return this.toResponse(this.findOneRecord(id));
+  async findOne(id: number): Promise<UploadResponse> {
+    return this.toResponse(await this.findOneRecord(id));
   }
 
-  update(id: number, updateUploadDto: UpdateUploadDto): UploadResponse {
-    const existing = this.findOneRecord(id);
-    const updated: UploadRecord = {
-      ...existing,
-      userId: updateUploadDto.userId ?? existing.userId,
-      category: updateUploadDto.category ?? existing.category,
-      note: updateUploadDto.note ?? existing.note,
-      tags: updateUploadDto.tags
-        ? updateUploadDto.tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0)
-        : existing.tags,
-      updatedAt: new Date().toISOString(),
-    };
+  async update(id: number, updateUploadDto: UpdateUploadDto): Promise<UploadResponse> {
+    const existing = await this.findOneRecord(id);
 
-    this.records.set(id, updated);
-    this.persist();
-    return this.toResponse(updated);
+    existing.userId = updateUploadDto.userId ?? existing.userId;
+    existing.category = updateUploadDto.category ?? existing.category;
+
+    if (updateUploadDto.note !== undefined) {
+      existing.note = updateUploadDto.note.trim() || null;
+    }
+
+    if (updateUploadDto.tags !== undefined) {
+      existing.tags = updateUploadDto.tags
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+    }
+
+    const savedRecord = await this.uploadsRepository.save(existing);
+    return this.toResponse(savedRecord);
   }
 
-  remove(id: number): { deleted: true } {
-    const existing = this.findOneRecord(id);
+  async remove(id: number): Promise<{ deleted: true }> {
+    const existing = await this.findOneRecord(id);
 
     if (existsSync(existing.absolutePath)) {
       rmSync(existing.absolutePath, { force: true });
     }
 
-    this.records.delete(id);
-    this.persist();
+    await this.uploadsRepository.delete({ id });
     return { deleted: true };
   }
 
-  getFileContent(id: number): {
+  async getFileContent(id: number): Promise<{
     fileName: string;
     mimeType: string;
     buffer: Buffer;
-  } {
-    const record = this.findOneRecord(id);
+  }> {
+    const record = await this.findOneRecord(id);
 
     if (!existsSync(record.absolutePath)) {
       throw new NotFoundException(`Upload file for record #${id} does not exist.`);
@@ -155,25 +152,38 @@ export class UploadsService {
     };
   }
 
-  private toResponse(record: UploadRecord): UploadResponse {
-    const { absolutePath, ...rest } = record;
+  private toResponse(record: Upload): UploadResponse {
+    const serialized: UploadRecord = {
+      id: record.id,
+      userId: record.userId ?? undefined,
+      category: record.category,
+      note: record.note ?? undefined,
+      tags: record.tags ?? undefined,
+      originalName: record.originalName,
+      storedName: record.storedName,
+      mimeType: record.mimeType,
+      size: record.size,
+      absolutePath: record.absolutePath,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    };
+
+    const { absolutePath, ...rest } = serialized;
+    void absolutePath;
+
     return {
       ...rest,
       contentUrl: `/uploads/${record.id}/content`,
     };
   }
 
-  private findOneRecord(id: number): UploadRecord {
-    const record = this.records.get(id);
+  private async findOneRecord(id: number): Promise<Upload> {
+    const record = await this.uploadsRepository.findOne({ where: { id } });
     if (!record) {
       throw new NotFoundException(`Upload #${id} not found.`);
     }
 
     return record;
-  }
-
-  private persist() {
-    this.store.save(Array.from(this.records.values()));
   }
 
   private assertAndNormalizeFile(file?: UploadedFileInput): NormalizedUploadFile {

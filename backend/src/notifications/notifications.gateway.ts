@@ -18,14 +18,14 @@ export class NotificationsGateway {
   constructor(private readonly notificationsService: NotificationsService) { }
 
   @SubscribeMessage('createNotification')
-  create(@MessageBody() createNotificationDto: CreateNotificationDto) {
-    const notification = this.notificationsService.create(createNotificationDto);
+  async create(@MessageBody() createNotificationDto: CreateNotificationDto) {
+    const notification = await this.notificationsService.create(createNotificationDto);
     this.emitEvent('notification.created', notification);
     return notification;
   }
 
   @SubscribeMessage('findAllNotifications')
-  findAll(
+  async findAll(
     @MessageBody()
     filters?: {
       userId?: string;
@@ -37,17 +37,17 @@ export class NotificationsGateway {
   }
 
   @SubscribeMessage('findOneNotification')
-  findOne(@MessageBody() id: number) {
+  async findOne(@MessageBody() id: number) {
     return this.notificationsService.findOne(id);
   }
 
   @SubscribeMessage('updateNotification')
-  update(@MessageBody() updateNotificationDto: UpdateNotificationDto) {
+  async update(@MessageBody() updateNotificationDto: UpdateNotificationDto) {
     if (!updateNotificationDto.id) {
       throw new BadRequestException('id is required for updateNotification event.');
     }
 
-    const notification = this.notificationsService.update(
+    const notification = await this.notificationsService.update(
       updateNotificationDto.id,
       updateNotificationDto,
     );
@@ -56,21 +56,21 @@ export class NotificationsGateway {
   }
 
   @SubscribeMessage('removeNotification')
-  remove(@MessageBody() id: number) {
-    const result = this.notificationsService.remove(id);
+  async remove(@MessageBody() id: number) {
+    const result = await this.notificationsService.remove(id);
     this.server.emit('notification.removed', { id });
     return result;
   }
 
   @SubscribeMessage('markNotificationRead')
-  markRead(
+  async markRead(
     @MessageBody() payload: { id: number; isRead?: boolean },
   ) {
     if (!payload?.id) {
       throw new BadRequestException('id is required for markNotificationRead event.');
     }
 
-    const notification = this.notificationsService.markAsRead(
+    const notification = await this.notificationsService.markAsRead(
       payload.id,
       payload.isRead ?? true,
     );

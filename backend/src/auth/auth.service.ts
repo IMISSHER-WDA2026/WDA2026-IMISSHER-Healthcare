@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { createHash } from 'node:crypto';
+import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
@@ -65,7 +65,7 @@ export class AuthService implements OnModuleInit {
       email,
       fullName: createAuthDto.fullName.trim(),
       role: UserRole.USER,
-      passwordHash: this.hashPassword(createAuthDto.password),
+      passwordHash: await this.hashPassword(createAuthDto.password),
     });
 
     const savedUser = await this.usersRepository.save(user);
@@ -80,7 +80,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    if (user.passwordHash !== this.hashPassword(loginAuthDto.password)) {
+    if (!(await this.verifyPassword(loginAuthDto.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
@@ -305,7 +305,7 @@ export class AuthService implements OnModuleInit {
 
     const existingUser = await this.usersRepository.findOne({ where: { email } });
     if (existingUser) {
-      const passwordHash = this.hashPassword(password);
+      const passwordHash = await this.hashPassword(password);
       let changed = false;
 
       if (existingUser.fullName !== fullName) {
@@ -334,7 +334,7 @@ export class AuthService implements OnModuleInit {
       email,
       fullName,
       role: UserRole.USER,
-      passwordHash: this.hashPassword(password),
+      passwordHash: await this.hashPassword(password),
     });
 
     await this.usersRepository.save(user);
@@ -353,7 +353,11 @@ export class AuthService implements OnModuleInit {
     return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
   }
 
-  private hashPassword(password: string): string {
-    return createHash('sha256').update(password).digest('hex');
+  private async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 12);
+  }
+
+  private async verifyPassword(password: string, passwordHash: string): Promise<boolean> {
+    return bcrypt.compare(password, passwordHash);
   }
 }

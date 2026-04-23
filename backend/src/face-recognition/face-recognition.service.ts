@@ -4,11 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { basename } from 'node:path';
-import { JsonPersistenceStore } from '../common/persistence/json-persistence.store';
+import { Repository } from 'typeorm';
 import { CreateFaceRecognitionDto } from './dto/create-face-recognition.dto';
 import { FaceRecognitionSource } from './dto/create-face-recognition.dto';
 import { UpdateFaceRecognitionDto } from './dto/update-face-recognition.dto';
+import { FaceRecognition } from './entities/face-recognition.entity';
 
 interface UploadedImageInput {
   buffer: Buffer;
@@ -63,11 +65,6 @@ export interface FaceRecognitionResult extends Omit<FaceRecognitionRecord, 'vect
 
 @Injectable()
 export class FaceRecognitionService {
-  private readonly records = new Map<number, FaceRecognitionRecord>();
-  private nextRecordId: number;
-  private readonly store = new JsonPersistenceStore<FaceRecognitionRecord>(
-    'face-recognition-records.json',
-  );
   private readonly apiEndpoint =
     process.env.FACE_RECOGNITION_API_URL?.trim() ??
     'http://localhost:8001/api/v1/face/recognize';
@@ -80,14 +77,10 @@ export class FaceRecognitionService {
   );
   private readonly defaultSimilarityThreshold = this.parseSimilarityThreshold();
 
-  constructor() {
-    const persistedRecords = this.store.load();
-    for (const record of persistedRecords) {
-      this.records.set(record.id, record);
-    }
-
-    this.nextRecordId = this.store.nextId(persistedRecords);
-  }
+  constructor(
+    @InjectRepository(FaceRecognition)
+    private readonly faceRecognitionRepository: Repository<FaceRecognition>,
+  ) { }
 
   async create(createFaceRecognitionDto: CreateFaceRecognitionDto): Promise<FaceRecognitionResult> {
     const imageInput = await this.resolveImageInput(createFaceRecognitionDto);
@@ -108,36 +101,41 @@ export class FaceRecognitionService {
     );
   }
 
-  findAll(userId?: string): FaceRecognitionResult[] {
-    return Array.from(this.records.values())
-      .filter((record) => (userId ? record.userId === userId : true))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map((record) => this.toResult(record));
+  async findAll(userId?: string): Promise<FaceRecognitionResult[]> {
+    const records = userId
+      ? await this.faceRecognitionRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+      })
+      : await this.faceRecognitionRepository.find({ order: { createdAt: 'DESC' } });
+
+    return records.map((record) => this.toResult(record));
   }
 
-  findOne(id: number): FaceRecognitionResult {
-    return this.toResult(this.findOneRecord(id));
+  async findOne(id: number): Promise<FaceRecognitionResult> {
+    return this.toResult(await this.findOneRecord(id));
   }
 
-  update(id: number, updateFaceRecognitionDto: UpdateFaceRecognitionDto): FaceRecognitionResult {
-    const existing = this.findOneRecord(id);
-    const updated: FaceRecognitionRecord = {
-      ...existing,
-      userId: updateFaceRecognitionDto.userId ?? existing.userId,
-      source: updateFaceRecognitionDto.source ?? existing.source,
-      note: updateFaceRecognitionDto.note ?? existing.note,
-      updatedAt: new Date().toISOString(),
-    };
+  async update(
+    id: number,
+    updateFaceRecognitionDto: UpdateFaceRecognitionDto,
+  ): Promise<FaceRecognitionResult> {
+    const existing = await this.findOneRecord(id);
 
-    this.records.set(id, updated);
-    this.persist();
-    return this.toResult(updated);
+    existing.userId = updateFaceRecognitionDto.userId ?? existing.userId;
+    existing.source = updateFaceRecognitionDto.source ?? existing.source;
+
+    if (updateFaceRecognitionDto.note !== undefined) {
+      existing.note = updateFaceRecognitionDto.note.trim() || null;
+    }
+
+    const savedRecord = await this.faceRecognitionRepository.save(existing);
+    return this.toResult(savedRecord);
   }
 
-  remove(id: number): { deleted: true } {
-    this.findOneRecord(id);
-    this.records.delete(id);
-    this.persist();
+  async remove(id: number): Promise<{ deleted: true }> {
+    await this.findOneRecord(id);
+    await this.faceRecognitionRepository.delete({ id });
     return { deleted: true };
   }
 
@@ -151,48 +149,48 @@ export class FaceRecognitionService {
     const vector = this.extractVector(payload);
     const threshold =
       createFaceRecognitionDto.minSimilarity ?? this.defaultSimilarityThreshold;
-    const match = this.findBestMatch(vector, threshold);
+    const match = await this.findBestMatch(vector, threshold);
 
-    const now = new Date().toISOString();
-    const record: FaceRecognitionRecord = {
-      id: this.nextRecordId,
+    const record = this.faceRecognitionRepository.create({
       userId: createFaceRecognitionDto.userId,
       source: createFaceRecognitionDto.source ?? FaceRecognitionSource.UNKNOWN,
-      note: createFaceRecognitionDto.note,
-      aiMessage: payload.message,
+      note: createFaceRecognitionDto.note?.trim() || null,
+      aiMessage: payload.message ?? null,
       dimensions: vector.length,
       vector,
-      matchedUserId: match?.userId,
-      similarity: match?.similarity,
-      createdAt: now,
-      updatedAt: now,
-    };
+      matchedUserId: match?.userId ?? null,
+      similarity: match?.similarity ?? null,
+    });
 
-    this.records.set(record.id, record);
-    this.nextRecordId += 1;
-    this.persist();
-    return this.toResult(record);
+    const savedRecord = await this.faceRecognitionRepository.save(record);
+    return this.toResult(savedRecord);
   }
 
-  private toResult(record: FaceRecognitionRecord): FaceRecognitionResult {
-    const { vector, ...rest } = record;
+  private toResult(record: FaceRecognition): FaceRecognitionResult {
+    const normalizedVector = this.normalizeStoredVector(record.vector);
+
     return {
-      ...rest,
-      vectorPreview: vector.slice(0, 8),
+      id: record.id,
+      userId: record.userId ?? undefined,
+      source: record.source,
+      note: record.note ?? undefined,
+      aiMessage: record.aiMessage ?? undefined,
+      dimensions: record.dimensions,
+      vectorPreview: normalizedVector.slice(0, 8),
+      matchedUserId: record.matchedUserId ?? undefined,
+      similarity: record.similarity ?? undefined,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
     };
   }
 
-  private findOneRecord(id: number): FaceRecognitionRecord {
-    const record = this.records.get(id);
+  private async findOneRecord(id: number): Promise<FaceRecognition> {
+    const record = await this.faceRecognitionRepository.findOne({ where: { id } });
     if (!record) {
       throw new NotFoundException(`Face recognition record #${id} not found.`);
     }
 
     return record;
-  }
-
-  private persist() {
-    this.store.save(Array.from(this.records.values()));
   }
 
   private parseSimilarityThreshold(): number {
@@ -428,6 +426,10 @@ export class FaceRecognitionService {
     return null;
   }
 
+  private normalizeStoredVector(value: unknown): number[] {
+    return this.toNumericVector(value) ?? [];
+  }
+
   private buildBase64DataUrl(imageInput: ResolvedImageInput): string {
     return `data:${imageInput.mimeType};base64,${imageInput.buffer.toString('base64')}`;
   }
@@ -457,15 +459,29 @@ export class FaceRecognitionService {
     return Math.min(Math.max(value, 3_000), 180_000);
   }
 
-  private findBestMatch(vector: number[], minSimilarity: number): FaceMatch | null {
+  private async findBestMatch(
+    vector: number[],
+    minSimilarity: number,
+  ): Promise<FaceMatch | null> {
     let bestMatch: FaceMatch | null = null;
 
-    for (const record of this.records.values()) {
-      if (!record.userId || record.vector.length !== vector.length) {
+    const records = await this.faceRecognitionRepository
+      .createQueryBuilder('record')
+      .where('record.userId IS NOT NULL')
+      .andWhere('record.dimensions = :dimensions', { dimensions: vector.length })
+      .getMany();
+
+    for (const record of records) {
+      if (!record.userId) {
         continue;
       }
 
-      const similarity = this.cosineSimilarity(record.vector, vector);
+      const storedVector = this.normalizeStoredVector(record.vector);
+      if (storedVector.length !== vector.length) {
+        continue;
+      }
+
+      const similarity = this.cosineSimilarity(storedVector, vector);
       if (!bestMatch || similarity > bestMatch.similarity) {
         bestMatch = {
           userId: record.userId,

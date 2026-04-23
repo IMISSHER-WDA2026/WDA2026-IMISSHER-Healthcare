@@ -9,13 +9,17 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MedicineMetadata, MedicinesService } from './medicines.service';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { UpdateMedicineDto } from './dto/update-medicine.dto';
 
 @ApiTags('Medicines')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('medicines')
 export class MedicinesController {
   constructor(private readonly medicinesService: MedicinesService) { }
