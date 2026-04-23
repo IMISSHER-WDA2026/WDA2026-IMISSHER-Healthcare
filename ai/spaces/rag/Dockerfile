@@ -15,6 +15,16 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
+# Pre-download the SentenceTransformer model
+RUN python - <<'EOF'
+try:
+    from sentence_transformers import SentenceTransformer
+    SentenceTransformer("keepitreal/vietnamese-sbert")
+    print("Model cached successfully.")
+except Exception as exc:
+    print(f"Model pre-download skipped: {exc}")
+EOF
+
 RUN adduser --disabled-password --gecos "" appuser \
     && chown -R appuser:appuser /app
 
