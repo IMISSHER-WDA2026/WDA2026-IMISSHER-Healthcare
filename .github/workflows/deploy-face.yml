@@ -3,7 +3,10 @@ name: Sync Face Space to Hugging Face
 on:
   push:
     branches: [ "main" ]
-    paths: [ "ai/spaces/face/**" ]
+
+concurrency:
+  group: sync-rag-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sync-to-hub:

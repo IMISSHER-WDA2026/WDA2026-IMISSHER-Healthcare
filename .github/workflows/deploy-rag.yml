@@ -3,9 +3,10 @@ name: Sync RAG Space to Hugging Face
 on:
   push:
     branches: [ "main" ]
-    paths: 
-      - "ai/spaces/rag/**"
-      - "ai/data/first_aid_knowledge.csv"
+
+concurrency:
+  group: sync-rag-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sync-to-hub:
