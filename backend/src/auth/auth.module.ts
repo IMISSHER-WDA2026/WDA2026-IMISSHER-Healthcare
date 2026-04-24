@@ -13,11 +13,13 @@ import { resolveJwtSecret } from '../common/config/runtime-security.config';
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: resolveJwtSecret(),
-      signOptions: {
-        expiresIn: (process.env.JWT_EXPIRES_IN as StringValue) || '7d',
-      },
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: resolveJwtSecret(),
+        signOptions: {
+          expiresIn: (process.env.JWT_EXPIRES_IN as StringValue) || '7d',
+        },
+      }),
     }),
   ],
   controllers: [AuthController],
