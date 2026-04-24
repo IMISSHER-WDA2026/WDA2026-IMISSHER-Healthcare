@@ -322,6 +322,64 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> recognizeFace({
+    required String token,
+    required String userId,
+    required File imageFile,
+    String source = 'camera',
+  }) async {
+    final candidateBaseUrls = [
+      _activeBaseUrl,
+      ..._baseUrlCandidates.where((base) => base != _activeBaseUrl),
+    ];
+
+    final failedConnectionUris = <String>[];
+
+    for (final candidateBaseUrl in candidateBaseUrls) {
+      final uri = Uri.parse('$candidateBaseUrl/face-recognition/recognize');
+      try {
+        final request = http.MultipartRequest('POST', uri)
+          ..headers['Authorization'] = 'Bearer $token'
+          ..fields['userId'] = userId
+          ..fields['source'] = source
+          ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+        final streamed = await request.send().timeout(
+              const Duration(seconds: 30),
+            );
+        final response = await http.Response.fromStream(streamed);
+
+        dynamic payload;
+        if (response.body.isNotEmpty) {
+          payload = jsonDecode(response.body);
+        }
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          throw ApiException(
+            _extractErrorMessage(payload),
+            statusCode: response.statusCode,
+          );
+        }
+
+        _activeBaseUrl = candidateBaseUrl;
+        if (payload is Map<String, dynamic>) {
+          return payload;
+        }
+        throw ApiException('Unexpected response format.');
+      } on SocketException {
+        failedConnectionUris.add(uri.toString());
+      } on HttpException {
+        failedConnectionUris.add(uri.toString());
+      } on http.ClientException {
+        failedConnectionUris.add(uri.toString());
+      }
+    }
+
+    throw ApiException(
+      'Unable to connect to backend. Tried: ${failedConnectionUris.join(', ')}.',
+    );
+  }
+
   Future<Map<String, dynamic>> _requestMap(
     String path, {
     String method = 'GET',

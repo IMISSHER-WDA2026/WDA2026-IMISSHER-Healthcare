@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,6 +19,8 @@ interface SosFilters {
 
 @Injectable()
 export class SosService {
+  private readonly logger = new Logger(SosService.name);
+
   constructor(
     @InjectRepository(SosRecord)
     private readonly sosRepository: Repository<SosRecord>,
@@ -99,22 +103,49 @@ export class SosService {
       );
     }
 
-    const resolvedAt =
+    const resolvedAtSource =
       nextStatus === SosStatus.RESOLVED
         ? (updateSosDto.resolvedAt ??
           incident.resolvedAt?.toISOString() ??
           new Date().toISOString())
         : (updateSosDto.resolvedAt ?? incident.resolvedAt);
 
+    const patch: Partial<SosRecord> = {};
+    if (updateSosDto.triggerSource !== undefined)
+      patch.triggerSource = updateSosDto.triggerSource;
+    if (updateSosDto.latitude !== undefined)
+      patch.latitude = updateSosDto.latitude;
+    if (updateSosDto.longitude !== undefined)
+      patch.longitude = updateSosDto.longitude;
+    if (updateSosDto.note !== undefined) patch.note = updateSosDto.note;
+    if (updateSosDto.responderPhone !== undefined)
+      patch.responderPhone = updateSosDto.responderPhone;
+    if (updateSosDto.resolutionNote !== undefined)
+      patch.resolutionNote = updateSosDto.resolutionNote;
+
     const updated: SosRecord = {
       ...incident,
-      ...updateSosDto,
+      ...patch,
       status: nextStatus,
-      resolvedAt: resolvedAt ? new Date(resolvedAt) : null,
+      resolvedAt: resolvedAtSource
+        ? resolvedAtSource instanceof Date
+          ? resolvedAtSource
+          : new Date(resolvedAtSource)
+        : null,
     };
 
-    const saved = await this.sosRepository.save(updated);
-    return this.toEntity(saved);
+    try {
+      const saved = await this.sosRepository.save(updated);
+      return this.toEntity(saved);
+    } catch (error) {
+      this.logger.error(
+        `Failed to persist SOS update for incident #${id}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Unable to update SOS incident. Please retry shortly.',
+      );
+    }
   }
 
   async remove(id: number): Promise<{ deleted: true }> {
