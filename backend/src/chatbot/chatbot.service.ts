@@ -24,7 +24,9 @@ export class ChatbotService {
     process.env.RAG_MODEL_API_TOKEN?.trim() ||
     process.env.CHAT_MODEL_API_KEY?.trim() ||
     '';
-  private readonly ragTimeoutMs = this.parseTimeout(process.env.RAG_MODEL_TIMEOUT_MS);
+  private readonly ragTimeoutMs = this.parseTimeout(
+    process.env.RAG_MODEL_TIMEOUT_MS,
+  );
 
   constructor() {
     this.loadKnowledgeBase();
@@ -49,11 +51,12 @@ export class ChatbotService {
     };
   }
 
-  private buildLocalAnswer(message: string, contexts: KnowledgeEntry[]): string {
+  private buildLocalAnswer(
+    message: string,
+    contexts: KnowledgeEntry[],
+  ): string {
     if (contexts.length === 0) {
-      return (
-        'I am a medical assistant. Please ask me questions related to first aid or healthcare.'
-      );
+      return 'I am a medical assistant. Please ask me questions related to first aid or healthcare.';
     }
 
     const guidance = contexts
@@ -111,7 +114,10 @@ export class ChatbotService {
     }
 
     const controller = new AbortController();
-    const timeoutHandle = setTimeout(() => controller.abort(), this.ragTimeoutMs);
+    const timeoutHandle = setTimeout(
+      () => controller.abort(),
+      this.ragTimeoutMs,
+    );
 
     const requestBody = {
       message,
@@ -128,7 +134,9 @@ export class ChatbotService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(this.ragApiToken ? { Authorization: `Bearer ${this.ragApiToken}` } : {}),
+          ...(this.ragApiToken
+            ? { Authorization: `Bearer ${this.ragApiToken}` }
+            : {}),
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal,
@@ -202,7 +210,9 @@ export class ChatbotService {
     const choicesPayload = objectPayload.choices;
     if (Array.isArray(choicesPayload) && choicesPayload.length > 0) {
       const firstChoice = choicesPayload[0] as Record<string, unknown>;
-      const messagePayload = firstChoice?.message as Record<string, unknown> | undefined;
+      const messagePayload = firstChoice?.message as
+        | Record<string, unknown>
+        | undefined;
       const contentCandidate = this.extractCloudAnswer(messagePayload?.content);
       if (contentCandidate) {
         return contentCandidate;

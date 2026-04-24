@@ -33,9 +33,11 @@ export class HealthMetricsService {
   constructor(
     @InjectRepository(HealthMetric)
     private readonly metricsRepository: Repository<HealthMetric>,
-  ) { }
+  ) {}
 
-  async create(createHealthMetricDto: CreateHealthMetricDto): Promise<HealthMetricRecord> {
+  async create(
+    createHealthMetricDto: CreateHealthMetricDto,
+  ): Promise<HealthMetricRecord> {
     const now = new Date();
     const record = this.metricsRepository.create({
       userId: createHealthMetricDto.userId,
@@ -96,14 +98,16 @@ export class HealthMetricsService {
       throw new NotFoundException(`Health metric #${id} not found.`);
     }
 
-    const nextMetricType = updateHealthMetricDto.metricType ?? existing.metricType;
+    const nextMetricType =
+      updateHealthMetricDto.metricType ?? existing.metricType;
 
     existing.userId = updateHealthMetricDto.userId ?? existing.userId;
     existing.metricType = nextMetricType;
     existing.value = updateHealthMetricDto.value ?? existing.value;
     existing.unit =
       updateHealthMetricDto.unit !== undefined
-        ? updateHealthMetricDto.unit.trim() || this.getDefaultUnit(nextMetricType)
+        ? updateHealthMetricDto.unit.trim() ||
+          this.getDefaultUnit(nextMetricType)
         : updateHealthMetricDto.metricType
           ? this.getDefaultUnit(nextMetricType)
           : existing.unit;
@@ -133,7 +137,8 @@ export class HealthMetricsService {
     latestMeasuredAt: string | null;
   }> {
     const records = await this.findAll({ userId });
-    const latestByType: Partial<Record<HealthMetricType, HealthMetricRecord>> = {};
+    const latestByType: Partial<Record<HealthMetricType, HealthMetricRecord>> =
+      {};
 
     for (const record of records) {
       if (!latestByType[record.metricType]) {

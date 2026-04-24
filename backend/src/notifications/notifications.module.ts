@@ -10,4 +10,4 @@ import { Notification } from './entities/notification.entity';
   controllers: [NotificationsController],
   providers: [NotificationsGateway, NotificationsService],
 })
-export class NotificationsModule { }
+export class NotificationsModule {}

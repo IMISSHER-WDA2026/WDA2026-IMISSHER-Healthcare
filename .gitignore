@@ -35,3 +35,4 @@ yarn-error.log*
 **/.mypy_cache/
 
 CLAUDE.md
+.claude/

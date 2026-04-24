@@ -73,4 +73,4 @@ import { resolveDatabaseUrl } from './common/config/runtime-security.config';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

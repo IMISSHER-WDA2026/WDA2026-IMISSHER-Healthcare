@@ -11,20 +11,23 @@ import { UsersService } from './users.service';
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
-    constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
-    @ApiOperation({ summary: 'Get current user profile.' })
-    @Get('me')
-    getMe(@Req() req: Request & { user: AuthTokenPayload }) {
-        return this.usersService.getCurrentUser(req.user.sub);
-    }
+  @ApiOperation({ summary: 'Get current user profile.' })
+  @Get('me')
+  getMe(@Req() req: Request & { user: AuthTokenPayload }) {
+    return this.usersService.getCurrentUser(req.user.sub);
+  }
 
-    @ApiOperation({ summary: 'Update current user profile.' })
-    @Patch('me')
-    updateMe(
-        @Req() req: Request & { user: AuthTokenPayload },
-        @Body() updateUserProfileDto: UpdateUserProfileDto,
-    ) {
-        return this.usersService.updateCurrentUser(req.user.sub, updateUserProfileDto);
-    }
+  @ApiOperation({ summary: 'Update current user profile.' })
+  @Patch('me')
+  updateMe(
+    @Req() req: Request & { user: AuthTokenPayload },
+    @Body() updateUserProfileDto: UpdateUserProfileDto,
+  ) {
+    return this.usersService.updateCurrentUser(
+      req.user.sub,
+      updateUserProfileDto,
+    );
+  }
 }

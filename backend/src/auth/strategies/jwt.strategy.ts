@@ -7,15 +7,15 @@ import { resolveJwtSecret } from '../../common/config/runtime-security.config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(private readonly authService: AuthService) {
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: resolveJwtSecret(),
-        });
-    }
+  constructor(private readonly authService: AuthService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: resolveJwtSecret(),
+    });
+  }
 
-    async validate(payload: AuthTokenPayload): Promise<AuthTokenPayload> {
-        return this.authService.validateUserByPayload(payload);
-    }
+  async validate(payload: AuthTokenPayload): Promise<AuthTokenPayload> {
+    return this.authService.validateUserByPayload(payload);
+  }
 }

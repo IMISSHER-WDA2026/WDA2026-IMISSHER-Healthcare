@@ -12,7 +12,13 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthTokenPayload } from '../auth/interfaces/auth-payload.interface';
@@ -27,7 +33,7 @@ type AuthenticatedRequest = Request & { user: AuthTokenPayload };
 @UseGuards(JwtAuthGuard)
 @Controller('medicines')
 export class MedicinesController {
-  constructor(private readonly medicinesService: MedicinesService) { }
+  constructor(private readonly medicinesService: MedicinesService) {}
 
   @ApiOperation({ summary: 'Tạo thuốc tùy chỉnh trong kho thuốc người dùng.' })
   @Post()
@@ -38,7 +44,10 @@ export class MedicinesController {
     return this.medicinesService.create(req.user.sub, createMedicineDto);
   }
 
-  @ApiOperation({ summary: 'Lấy danh sách thuốc từ catalog + thuốc tùy chỉnh của chính người dùng.' })
+  @ApiOperation({
+    summary:
+      'Lấy danh sách thuốc từ catalog + thuốc tùy chỉnh của chính người dùng.',
+  })
   @Get()
   findAll(
     @Req() req: AuthenticatedRequest,
@@ -56,7 +65,10 @@ export class MedicinesController {
     @Req() req: AuthenticatedRequest,
     @Param('barcode') barcode: string,
   ): Promise<MedicineMetadata> {
-    const medicine = await this.medicinesService.findByBarcode(barcode, req.user.sub);
+    const medicine = await this.medicinesService.findByBarcode(
+      barcode,
+      req.user.sub,
+    );
     if (!medicine) {
       throw new NotFoundException('Medicine metadata not found for barcode.');
     }
@@ -64,7 +76,9 @@ export class MedicinesController {
     return medicine;
   }
 
-  @ApiOperation({ summary: 'Lấy chi tiết một thuốc tùy chỉnh của người dùng hiện tại.' })
+  @ApiOperation({
+    summary: 'Lấy chi tiết một thuốc tùy chỉnh của người dùng hiện tại.',
+  })
   @ApiParam({ name: 'id', description: 'ID số nguyên của thuốc tùy chỉnh.' })
   @Get(':id')
   findOne(
@@ -74,7 +88,9 @@ export class MedicinesController {
     return this.medicinesService.findOne(req.user.sub, id);
   }
 
-  @ApiOperation({ summary: 'Cập nhật một thuốc tùy chỉnh của người dùng hiện tại.' })
+  @ApiOperation({
+    summary: 'Cập nhật một thuốc tùy chỉnh của người dùng hiện tại.',
+  })
   @ApiParam({ name: 'id', description: 'ID số nguyên của thuốc tùy chỉnh.' })
   @Patch(':id')
   update(

@@ -48,7 +48,7 @@ export class AuthService implements OnModuleInit {
     private readonly jwtService: JwtService,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
-  ) { }
+  ) {}
 
   async onModuleInit(): Promise<void> {
     await this.seedTestAccount();
@@ -56,7 +56,9 @@ export class AuthService implements OnModuleInit {
 
   async register(createAuthDto: CreateAuthDto): Promise<AuthSuccessResponse> {
     const email = this.normalizeEmail(createAuthDto.email);
-    const existingUser = await this.usersRepository.findOne({ where: { email } });
+    const existingUser = await this.usersRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('Email is already registered.');
     }
@@ -80,7 +82,9 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    if (!(await this.verifyPassword(loginAuthDto.password, user.passwordHash))) {
+    if (
+      !(await this.verifyPassword(loginAuthDto.password, user.passwordHash))
+    ) {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
@@ -168,15 +172,20 @@ export class AuthService implements OnModuleInit {
         },
       ]);
 
-      user.emergencyContacts = normalizedContacts.length > 0 ? normalizedContacts : null;
+      user.emergencyContacts =
+        normalizedContacts.length > 0 ? normalizedContacts : null;
     }
 
     const savedUser = await this.usersRepository.save(user);
     return this.toPublic(savedUser);
   }
 
-  async validateUserByPayload(payload: AuthTokenPayload): Promise<AuthTokenPayload> {
-    const user = await this.usersRepository.findOne({ where: { id: payload.sub } });
+  async validateUserByPayload(
+    payload: AuthTokenPayload,
+  ): Promise<AuthTokenPayload> {
+    const user = await this.usersRepository.findOne({
+      where: { id: payload.sub },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid token.');
     }
@@ -255,7 +264,9 @@ export class AuthService implements OnModuleInit {
     return nextValue;
   }
 
-  private coerceEmergencyContacts(value: unknown): Array<{ name?: string; phone?: string }> {
+  private coerceEmergencyContacts(
+    value: unknown,
+  ): Array<{ name?: string; phone?: string }> {
     if (!Array.isArray(value)) {
       return [];
     }
@@ -268,7 +279,8 @@ export class AuthService implements OnModuleInit {
       const candidate = entry as { name?: unknown; phone?: unknown };
       return {
         name: typeof candidate.name === 'string' ? candidate.name : undefined,
-        phone: typeof candidate.phone === 'string' ? candidate.phone : undefined,
+        phone:
+          typeof candidate.phone === 'string' ? candidate.phone : undefined,
       };
     });
   }
@@ -299,11 +311,18 @@ export class AuthService implements OnModuleInit {
       process.env.HEALTHCARE_TEST_ACCOUNT_FULL_NAME ?? 'Healthcare Test User'
     ).trim();
 
-    if (!email || email.length < 5 || password.length < 8 || fullName.length < 2) {
+    if (
+      !email ||
+      email.length < 5 ||
+      password.length < 8 ||
+      fullName.length < 2
+    ) {
       return;
     }
 
-    const existingUser = await this.usersRepository.findOne({ where: { email } });
+    const existingUser = await this.usersRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
       const passwordHash = await this.hashPassword(password);
       let changed = false;
@@ -350,14 +369,19 @@ export class AuthService implements OnModuleInit {
     }
 
     const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+    return Number.isNaN(parsed.getTime())
+      ? new Date().toISOString()
+      : parsed.toISOString();
   }
 
   private async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 12);
   }
 
-  private async verifyPassword(password: string, passwordHash: string): Promise<boolean> {
+  private async verifyPassword(
+    password: string,
+    passwordHash: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, passwordHash);
   }
 }

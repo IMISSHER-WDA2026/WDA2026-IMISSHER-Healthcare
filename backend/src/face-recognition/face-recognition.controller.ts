@@ -32,7 +32,9 @@ import { UpdateFaceRecognitionDto } from './dto/update-face-recognition.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('face-recognition')
 export class FaceRecognitionController {
-  constructor(private readonly faceRecognitionService: FaceRecognitionService) { }
+  constructor(
+    private readonly faceRecognitionService: FaceRecognitionService,
+  ) {}
 
   @ApiOperation({ summary: 'Recognize face from multipart image upload.' })
   @ApiConsumes('multipart/form-data')
@@ -54,15 +56,18 @@ export class FaceRecognitionController {
     @UploadedFile()
     file:
       | {
-        buffer: Buffer;
-        mimetype?: string;
-        originalname?: string;
-        size?: number;
-      }
+          buffer: Buffer;
+          mimetype?: string;
+          originalname?: string;
+          size?: number;
+        }
       | undefined,
     @Body() createFaceRecognitionDto: CreateFaceRecognitionDto,
   ) {
-    return this.faceRecognitionService.createFromUpload(createFaceRecognitionDto, file);
+    return this.faceRecognitionService.createFromUpload(
+      createFaceRecognitionDto,
+      file,
+    );
   }
 
   @ApiOperation({ summary: 'Recognize face from base64 or image URL.' })
@@ -72,7 +77,11 @@ export class FaceRecognitionController {
   }
 
   @ApiOperation({ summary: 'List face recognition records.' })
-  @ApiQuery({ name: 'userId', required: false, description: 'Filter records by userId.' })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    description: 'Filter records by userId.',
+  })
   @Get()
   findAll(@Query('userId') userId?: string) {
     return this.faceRecognitionService.findAll(userId);

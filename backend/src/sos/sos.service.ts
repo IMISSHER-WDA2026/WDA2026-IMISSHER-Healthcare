@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateSosDto } from './dto/create-sos.dto';
@@ -16,10 +20,13 @@ export class SosService {
   constructor(
     @InjectRepository(SosRecord)
     private readonly sosRepository: Repository<SosRecord>,
-  ) { }
+  ) {}
 
   async create(createSosDto: CreateSosDto): Promise<SosEntity> {
-    this.assertLocationConsistency(createSosDto.latitude, createSosDto.longitude);
+    this.assertLocationConsistency(
+      createSosDto.latitude,
+      createSosDto.longitude,
+    );
 
     const incident = this.sosRepository.create({
       userId: createSosDto.userId,
@@ -46,7 +53,9 @@ export class SosService {
       query.andWhere('incident.status = :status', { status: filters.status });
     }
 
-    const incidents = await query.orderBy('incident.createdAt', 'DESC').getMany();
+    const incidents = await query
+      .orderBy('incident.createdAt', 'DESC')
+      .getMany();
     return incidents.map((incident) => this.toEntity(incident));
   }
 
@@ -77,18 +86,25 @@ export class SosService {
       throw new NotFoundException(`SOS incident #${id} not found.`);
     }
 
-    this.assertLocationConsistency(updateSosDto.latitude, updateSosDto.longitude);
+    this.assertLocationConsistency(
+      updateSosDto.latitude,
+      updateSosDto.longitude,
+    );
 
     const nextStatus = updateSosDto.status ?? incident.status;
 
     if (nextStatus !== SosStatus.RESOLVED && updateSosDto.resolutionNote) {
-      throw new BadRequestException('resolutionNote can only be provided for resolved incidents.');
+      throw new BadRequestException(
+        'resolutionNote can only be provided for resolved incidents.',
+      );
     }
 
     const resolvedAt =
       nextStatus === SosStatus.RESOLVED
-        ? updateSosDto.resolvedAt ?? incident.resolvedAt?.toISOString() ?? new Date().toISOString()
-        : updateSosDto.resolvedAt ?? incident.resolvedAt;
+        ? (updateSosDto.resolvedAt ??
+          incident.resolvedAt?.toISOString() ??
+          new Date().toISOString())
+        : (updateSosDto.resolvedAt ?? incident.resolvedAt);
 
     const updated: SosRecord = {
       ...incident,
@@ -109,7 +125,9 @@ export class SosService {
 
   private assertLocationConsistency(latitude?: number, longitude?: number) {
     if ((latitude === undefined) !== (longitude === undefined)) {
-      throw new BadRequestException('Both latitude and longitude must be provided together.');
+      throw new BadRequestException(
+        'Both latitude and longitude must be provided together.',
+      );
     }
   }
 

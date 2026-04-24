@@ -9,4 +9,4 @@ import { Upload } from './entities/upload.entity';
   controllers: [UploadsController],
   providers: [UploadsService],
 })
-export class UploadsModule { }
+export class UploadsModule {}

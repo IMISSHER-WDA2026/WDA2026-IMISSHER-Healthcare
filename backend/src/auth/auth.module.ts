@@ -24,5 +24,4 @@ import { resolveJwtSecret } from '../common/config/runtime-security.config';
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })
-export class AuthModule { }
-
+export class AuthModule {}

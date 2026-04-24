@@ -9,4 +9,4 @@ import { SosRecord } from './entities/sos-record.entity';
   controllers: [SosController],
   providers: [SosService],
 })
-export class SosModule { }
+export class SosModule {}

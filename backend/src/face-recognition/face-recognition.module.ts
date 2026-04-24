@@ -9,4 +9,4 @@ import { FaceRecognition } from './entities/face-recognition.entity';
   controllers: [FaceRecognitionController],
   providers: [FaceRecognitionService],
 })
-export class FaceRecognitionModule { }
+export class FaceRecognitionModule {}

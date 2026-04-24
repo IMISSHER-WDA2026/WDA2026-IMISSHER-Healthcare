@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -1658,6 +1660,31 @@ class _SosScreenState extends State<SosScreen> {
   }
 }
 
+enum ScannerMode { qr, barcode, face }
+
+const Duration _kScannerDebounce = Duration(milliseconds: 1500);
+
+String? _extractUserIdFromQr(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+
+  final uuidPattern = RegExp(
+    r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+  );
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.hasScheme) {
+    final queryId = uri.queryParameters['userId'];
+    if (queryId != null && queryId.isNotEmpty) return queryId;
+    for (final segment in uri.pathSegments.reversed) {
+      if (uuidPattern.hasMatch(segment)) return segment;
+    }
+  }
+
+  final match = uuidPattern.firstMatch(trimmed);
+  return match?.group(0);
+}
+
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({
     super.key,
@@ -1675,29 +1702,76 @@ class ScannerScreen extends StatefulWidget {
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
-  final MobileScannerController _cameraController = MobileScannerController();
-  bool _isFaceMode = false;
+  final MobileScannerController _cameraController = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode, BarcodeFormat.ean13, BarcodeFormat.ean8, BarcodeFormat.code128, BarcodeFormat.upcA, BarcodeFormat.upcE],
+  );
+  ScannerMode _mode = ScannerMode.barcode;
   bool _isCameraActive = true;
   String? _scannedValue;
   Map<String, dynamic>? _result;
+  String? _qrUserId;
   String? _error;
   bool _loading = false;
 
+  DateTime? _lastDetectionAt;
+  Timer? _debounceTimer;
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _cameraController.dispose();
     super.dispose();
   }
 
-  Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
-    final barcode = capture.barcodes.firstOrNull;
-    final raw = barcode?.rawValue;
-    if (raw == null || raw.isEmpty || _loading) return;
+  bool _shouldAcceptDetection() {
+    final now = DateTime.now();
+    final last = _lastDetectionAt;
+    if (last != null && now.difference(last) < _kScannerDebounce) {
+      return false;
+    }
+    _lastDetectionAt = now;
+    return true;
+  }
 
+  void _onDetect(BarcodeCapture capture) {
+    if (_mode == ScannerMode.face) return;
+    if (_loading) return;
+
+    final raw = capture.barcodes.firstOrNull?.rawValue;
+    if (raw == null || raw.isEmpty) return;
+    if (!_shouldAcceptDetection()) return;
+
+    switch (_mode) {
+      case ScannerMode.qr:
+        unawaited(_handleQr(raw));
+        break;
+      case ScannerMode.barcode:
+        unawaited(_handleBarcode(raw));
+        break;
+      case ScannerMode.face:
+        break;
+    }
+  }
+
+  Future<void> _handleQr(String raw) async {
     await _cameraController.stop();
+    if (!mounted) return;
     setState(() {
       _isCameraActive = false;
       _scannedValue = raw;
+      _qrUserId = _extractUserIdFromQr(raw);
+      _result = null;
+      _error = null;
+    });
+  }
+
+  Future<void> _handleBarcode(String raw) async {
+    await _cameraController.stop();
+    if (!mounted) return;
+    setState(() {
+      _isCameraActive = false;
+      _scannedValue = raw;
+      _qrUserId = null;
       _loading = true;
       _error = null;
       _result = null;
@@ -1726,52 +1800,68 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  void _resetScan() {
+  Future<void> _switchMode(ScannerMode next) async {
+    if (_mode == next) return;
+    _debounceTimer?.cancel();
+    _lastDetectionAt = null;
+
     setState(() {
+      _mode = next;
       _scannedValue = null;
+      _qrUserId = null;
       _result = null;
       _error = null;
-      _isCameraActive = true;
+      _isCameraActive = next != ScannerMode.face;
     });
-    _cameraController.start();
+
+    if (next == ScannerMode.face) {
+      await _cameraController.stop();
+    } else {
+      await _cameraController.start();
+    }
+  }
+
+  void _resetScan() {
+    _lastDetectionAt = null;
+    setState(() {
+      _scannedValue = null;
+      _qrUserId = null;
+      _result = null;
+      _error = null;
+      _isCameraActive = _mode != ScannerMode.face;
+    });
+    if (_mode != ScannerMode.face) {
+      _cameraController.start();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = widget.strings;
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: SegmentedButton<bool>(
-                  segments: [
-                    ButtonSegment(
-                      value: false,
-                      label: Text(widget.strings.t('scanner.barcodeMode')),
-                      icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
-                    ),
-                    ButtonSegment(
-                      value: true,
-                      label: Text(widget.strings.t('scanner.faceMode')),
-                      icon: const Icon(Icons.face_rounded, size: 18),
-                    ),
-                  ],
-                  selected: {_isFaceMode},
-                  onSelectionChanged: (val) {
-                    setState(() {
-                      _isFaceMode = val.first;
-                      _scannedValue = null;
-                      _result = null;
-                      _error = null;
-                      _isCameraActive = true;
-                    });
-                    _cameraController.start();
-                  },
-                ),
+          child: SegmentedButton<ScannerMode>(
+            segments: [
+              ButtonSegment(
+                value: ScannerMode.qr,
+                label: Text(strings.t('scanner.qrMode')),
+                icon: const Icon(Icons.qr_code_rounded, size: 18),
+              ),
+              ButtonSegment(
+                value: ScannerMode.barcode,
+                label: Text(strings.t('scanner.barcodeMode')),
+                icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+              ),
+              ButtonSegment(
+                value: ScannerMode.face,
+                label: Text(strings.t('scanner.faceMode')),
+                icon: const Icon(Icons.face_rounded, size: 18),
               ),
             ],
+            selected: {_mode},
+            onSelectionChanged: (val) => _switchMode(val.first),
           ),
         ),
         const SizedBox(height: 12),
@@ -1781,34 +1871,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: _isCameraActive
-                  ? MobileScanner(
-                      controller: _cameraController,
-                      onDetect: _isFaceMode ? null : _onBarcodeDetected,
-                    )
-                  : Container(
-                      color: Colors.black87,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
-                            const SizedBox(height: 8),
-                            Text(
-                              _scannedValue ?? '',
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            TextButton.icon(
-                              onPressed: _resetScan,
-                              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                              label: Text(widget.strings.t('common.retry'), style: const TextStyle(color: Colors.white)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+              child: _buildCameraSurface(strings),
             ),
           ),
         ),
@@ -1823,7 +1886,70 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
+  Widget _buildCameraSurface(AppStrings strings) {
+    if (_mode == ScannerMode.face) {
+      return Container(
+        color: Colors.black87,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.face_retouching_natural, color: Colors.white70, size: 56),
+                const SizedBox(height: 12),
+                Text(
+                  strings.t('scanner.faceMode'),
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  strings.t('scanner.faceHint'),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!_isCameraActive) {
+      return Container(
+        color: Colors.black87,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+              const SizedBox(height: 8),
+              Text(
+                _scannedValue ?? '',
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: _resetScan,
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                label: Text(strings.t('common.retry'), style: const TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return MobileScanner(
+      controller: _cameraController,
+      onDetect: _onDetect,
+    );
+  }
+
   Widget _buildResult(BuildContext context) {
+    final strings = widget.strings;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1841,13 +1967,38 @@ class _ScannerScreenState extends State<ScannerScreen> {
       );
     }
 
+    if (_mode == ScannerMode.qr && _scannedValue != null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                strings.t('scanner.qrResultTitle'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              if (_qrUserId != null) ...[
+                Text(strings.t('scanner.qrUserId'), style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 2),
+                SelectableText(_qrUserId!, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+              ],
+              Text(strings.t('scanner.qrRaw'), style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 2),
+              SelectableText(_scannedValue!, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+            ],
+          ),
+        ),
+      );
+    }
+
     final result = _result;
     if (result == null) {
       return Center(
         child: Text(
-          _isFaceMode
-              ? widget.strings.t('scanner.faceMode')
-              : widget.strings.t('scanner.tapToScan'),
+          _modePrompt(strings),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF6B7280)),
           textAlign: TextAlign.center,
         ),
@@ -1861,7 +2012,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.strings.t('scanner.resultTitle'),
+              strings.t('scanner.resultTitle'),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
@@ -1872,6 +2023,17 @@ class _ScannerScreenState extends State<ScannerScreen> {
         ),
       ),
     );
+  }
+
+  String _modePrompt(AppStrings strings) {
+    switch (_mode) {
+      case ScannerMode.qr:
+        return strings.t('scanner.qrPrompt');
+      case ScannerMode.barcode:
+        return strings.t('scanner.tapToScan');
+      case ScannerMode.face:
+        return strings.t('scanner.faceHint');
+    }
   }
 }
 
@@ -2231,6 +2393,7 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet>
   bool _saving = false;
   bool _scanning = false;
   String? _error;
+  DateTime? _lastDetectionAt;
 
   @override
   void initState() {
@@ -2240,6 +2403,7 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet>
       if (_tabController.index == 0) {
         _scannerController.stop();
       } else {
+        _lastDetectionAt = null;
         _scannerController.start();
       }
     });
@@ -2262,6 +2426,13 @@ class _CreateMedicineSheetState extends State<_CreateMedicineSheet>
   Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
     final raw = capture.barcodes.firstOrNull?.rawValue;
     if (raw == null || raw.isEmpty || _scanning) return;
+
+    final now = DateTime.now();
+    final last = _lastDetectionAt;
+    if (last != null && now.difference(last) < _kScannerDebounce) {
+      return;
+    }
+    _lastDetectionAt = now;
 
     await _scannerController.stop();
     setState(() {
@@ -2757,6 +2928,8 @@ class _QuickScanScreen extends StatefulWidget {
 class _QuickScanScreenState extends State<_QuickScanScreen> {
   final MobileScannerController _controller = MobileScannerController();
   String? _result;
+  String? _qrUserId;
+  DateTime? _lastDetectionAt;
 
   @override
   void dispose() {
@@ -2765,10 +2938,23 @@ class _QuickScanScreenState extends State<_QuickScanScreen> {
   }
 
   void _onDetect(BarcodeCapture capture) {
+    if (_result != null) return;
+
     final raw = capture.barcodes.firstOrNull?.rawValue;
-    if (raw == null || _result != null) return;
+    if (raw == null || raw.isEmpty) return;
+
+    final now = DateTime.now();
+    final last = _lastDetectionAt;
+    if (last != null && now.difference(last) < _kScannerDebounce) {
+      return;
+    }
+    _lastDetectionAt = now;
+
     _controller.stop();
-    setState(() => _result = raw);
+    setState(() {
+      _result = raw;
+      _qrUserId = _extractUserIdFromQr(raw);
+    });
   }
 
   @override
@@ -2788,11 +2974,27 @@ class _QuickScanScreenState extends State<_QuickScanScreen> {
                   ? Center(child: Text(widget.strings.t('quickScan.desc'), textAlign: TextAlign.center))
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_qrUserId != null) ...[
+                          Text(widget.strings.t('scanner.qrUserId'), style: Theme.of(context).textTheme.bodySmall),
+                          const SizedBox(height: 2),
+                          SelectableText(_qrUserId!, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                        ],
+                        Text(widget.strings.t('scanner.qrRaw'), style: Theme.of(context).textTheme.bodySmall),
+                        const SizedBox(height: 2),
                         SelectableText(_result!, style: const TextStyle(fontFamily: 'monospace', fontSize: 14)),
                         const SizedBox(height: 12),
                         FilledButton.icon(
-                          onPressed: () { setState(() => _result = null); _controller.start(); },
+                          onPressed: () {
+                            setState(() {
+                              _result = null;
+                              _qrUserId = null;
+                              _lastDetectionAt = null;
+                            });
+                            _controller.start();
+                          },
                           icon: const Icon(Icons.refresh_rounded),
                           label: Text(widget.strings.t('common.retry')),
                         ),

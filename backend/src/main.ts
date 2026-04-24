@@ -11,12 +11,15 @@ async function bootstrap() {
 
   const parsedPort = Number.parseInt(process.env.PORT ?? '3000', 10);
   const port = Number.isNaN(parsedPort) ? 3000 : parsedPort;
-  const isProduction = (process.env.NODE_ENV ?? '').trim().toLowerCase() === 'production';
+  const isProduction =
+    (process.env.NODE_ENV ?? '').trim().toLowerCase() === 'production';
   const enableSwagger = process.env.ENABLE_SWAGGER
     ? process.env.ENABLE_SWAGGER === 'true'
     : !isProduction;
   const corsOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean)
+    ? process.env.CORS_ORIGIN.split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean)
     : [];
 
   const allowAllOrigins =

@@ -15,11 +15,13 @@ export class NotificationsGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly notificationsService: NotificationsService) { }
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @SubscribeMessage('createNotification')
   async create(@MessageBody() createNotificationDto: CreateNotificationDto) {
-    const notification = await this.notificationsService.create(createNotificationDto);
+    const notification = await this.notificationsService.create(
+      createNotificationDto,
+    );
     this.emitEvent('notification.created', notification);
     return notification;
   }
@@ -44,7 +46,9 @@ export class NotificationsGateway {
   @SubscribeMessage('updateNotification')
   async update(@MessageBody() updateNotificationDto: UpdateNotificationDto) {
     if (!updateNotificationDto.id) {
-      throw new BadRequestException('id is required for updateNotification event.');
+      throw new BadRequestException(
+        'id is required for updateNotification event.',
+      );
     }
 
     const notification = await this.notificationsService.update(
@@ -63,11 +67,11 @@ export class NotificationsGateway {
   }
 
   @SubscribeMessage('markNotificationRead')
-  async markRead(
-    @MessageBody() payload: { id: number; isRead?: boolean },
-  ) {
+  async markRead(@MessageBody() payload: { id: number; isRead?: boolean }) {
     if (!payload?.id) {
-      throw new BadRequestException('id is required for markNotificationRead event.');
+      throw new BadRequestException(
+        'id is required for markNotificationRead event.',
+      );
     }
 
     const notification = await this.notificationsService.markAsRead(

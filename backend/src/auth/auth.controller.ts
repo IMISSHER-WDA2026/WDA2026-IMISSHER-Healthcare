@@ -1,5 +1,19 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -11,7 +25,7 @@ import { AuthTokenPayload } from './interfaces/auth-payload.interface';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({ summary: 'Register a new user account.' })
   @Post('register')
@@ -34,8 +48,13 @@ export class AuthController {
     return this.authService.getMe(req.user);
   }
 
-  @ApiOperation({ summary: 'Get public medical profile for bystander / QR scan view.' })
-  @ApiParam({ name: 'userId', description: 'User UUID encoded in the QR code.' })
+  @ApiOperation({
+    summary: 'Get public medical profile for bystander / QR scan view.',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'User UUID encoded in the QR code.',
+  })
   @Throttle({ 'public-profile': { limit: 10, ttl: 60_000 } })
   @Get('public/:userId')
   getPublicProfile(@Param('userId') userId: string) {

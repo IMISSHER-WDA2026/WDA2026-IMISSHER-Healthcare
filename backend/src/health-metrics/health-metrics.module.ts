@@ -9,4 +9,4 @@ import { HealthMetric } from './entities/health-metric.entity';
   controllers: [HealthMetricsController],
   providers: [HealthMetricsService],
 })
-export class HealthMetricsModule { }
+export class HealthMetricsModule {}

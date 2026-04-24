@@ -38,7 +38,7 @@ import { UpdateUploadDto } from './dto/update-upload.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('uploads')
 export class UploadsController {
-  constructor(private readonly uploadsService: UploadsService) { }
+  constructor(private readonly uploadsService: UploadsService) {}
 
   @ApiOperation({ summary: 'Upload a file with metadata.' })
   @ApiConsumes('multipart/form-data')
@@ -69,18 +69,22 @@ export class UploadsController {
     @UploadedFile()
     file:
       | {
-        buffer: Buffer;
-        mimetype?: string;
-        originalname?: string;
-        size?: number;
-      }
+          buffer: Buffer;
+          mimetype?: string;
+          originalname?: string;
+          size?: number;
+        }
       | undefined,
   ) {
     return this.uploadsService.create(createUploadDto, file);
   }
 
   @ApiOperation({ summary: 'List upload metadata records.' })
-  @ApiQuery({ name: 'userId', required: false, description: 'Filter by userId.' })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    description: 'Filter by userId.',
+  })
   @Get()
   findAll(@Query('userId') userId?: string) {
     return this.uploadsService.findAll(userId);
@@ -101,7 +105,10 @@ export class UploadsController {
   ) {
     const file = await this.uploadsService.getFileContent(id, req.user?.sub);
     response.setHeader('Content-Type', file.mimeType);
-    response.setHeader('Content-Disposition', `inline; filename="${file.fileName}"`);
+    response.setHeader(
+      'Content-Disposition',
+      `inline; filename="${file.fileName}"`,
+    );
     return new StreamableFile(file.buffer);
   }
 

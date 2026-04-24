@@ -6,9 +6,11 @@ import { ChatRequestDto } from './dto/chat-request.dto';
 @ApiTags('Chatbot')
 @Controller('chatbot')
 export class ChatbotController {
-  constructor(private readonly chatbotService: ChatbotService) { }
+  constructor(private readonly chatbotService: ChatbotService) {}
 
-  @ApiOperation({ summary: 'Send a question and receive a medical chatbot response.' })
+  @ApiOperation({
+    summary: 'Send a question and receive a medical chatbot response.',
+  })
   @ApiResponse({
     status: 200,
     description: 'Returns a reply from the cloud model or local RAG fallback.',

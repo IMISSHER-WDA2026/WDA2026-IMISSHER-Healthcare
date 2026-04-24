@@ -61,17 +61,23 @@ export class MedicinesService {
         where: { barcode, ownerId: currentUserId },
       });
       if (existingOwned) {
-        throw new ConflictException('A medicine with this barcode already exists.');
+        throw new ConflictException(
+          'A medicine with this barcode already exists.',
+        );
       }
     }
 
     const record = this.customMedicineRepository.create({
       source: 'custom',
       name,
-      active_ingredient: this.normalizeOptionalText(createMedicineDto.active_ingredient),
+      active_ingredient: this.normalizeOptionalText(
+        createMedicineDto.active_ingredient,
+      ),
       barcode,
       description: this.normalizeOptionalText(createMedicineDto.description),
-      contraindications: this.normalizeOptionalText(createMedicineDto.contraindications),
+      contraindications: this.normalizeOptionalText(
+        createMedicineDto.contraindications,
+      ),
       ownerId: currentUserId,
       quantity: this.normalizeOptionalNumber(createMedicineDto.quantity),
       unit: this.normalizeOptionalText(createMedicineDto.unit),
@@ -103,8 +109,13 @@ export class MedicinesService {
     return [...this.catalogMedicines, ...customMedicines];
   }
 
-  async findOne(currentUserId: string, id: number): Promise<CustomMedicineRecord> {
-    const record = await this.customMedicineRepository.findOne({ where: { id } });
+  async findOne(
+    currentUserId: string,
+    id: number,
+  ): Promise<CustomMedicineRecord> {
+    const record = await this.customMedicineRepository.findOne({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`Custom medicine #${id} not found.`);
     }
@@ -140,7 +151,9 @@ export class MedicinesService {
     id: number,
     updateMedicineDto: UpdateMedicineDto,
   ): Promise<CustomMedicineRecord> {
-    const existing = await this.customMedicineRepository.findOne({ where: { id } });
+    const existing = await this.customMedicineRepository.findOne({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException(`Custom medicine #${id} not found.`);
     }
@@ -159,7 +172,9 @@ export class MedicinesService {
         where: { barcode: nextBarcode, ownerId: currentUserId },
       });
       if (barcodeCollision && barcodeCollision.id !== existing.id) {
-        throw new ConflictException('A medicine with this barcode already exists.');
+        throw new ConflictException(
+          'A medicine with this barcode already exists.',
+        );
       }
     }
 
@@ -167,16 +182,20 @@ export class MedicinesService {
       ...existing,
       name: nextName,
       active_ingredient:
-        updateMedicineDto.active_ingredient?.trim() ?? existing.active_ingredient,
+        updateMedicineDto.active_ingredient?.trim() ??
+        existing.active_ingredient,
       barcode: nextBarcode,
-      description: updateMedicineDto.description?.trim() ?? existing.description,
+      description:
+        updateMedicineDto.description?.trim() ?? existing.description,
       contraindications:
-        updateMedicineDto.contraindications?.trim() ?? existing.contraindications,
+        updateMedicineDto.contraindications?.trim() ??
+        existing.contraindications,
       ownerId: existing.ownerId,
       quantity: updateMedicineDto.quantity ?? existing.quantity,
       unit: updateMedicineDto.unit?.trim() ?? existing.unit,
       expiresAt: updateMedicineDto.expiresAt?.trim() ?? existing.expiresAt,
-      reminderTime: updateMedicineDto.reminderTime?.trim() ?? existing.reminderTime,
+      reminderTime:
+        updateMedicineDto.reminderTime?.trim() ?? existing.reminderTime,
     };
 
     const savedRecord = await this.customMedicineRepository.save(updated);
@@ -184,7 +203,9 @@ export class MedicinesService {
   }
 
   async remove(currentUserId: string, id: number): Promise<{ deleted: true }> {
-    const existing = await this.customMedicineRepository.findOne({ where: { id } });
+    const existing = await this.customMedicineRepository.findOne({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException(`Custom medicine #${id} not found.`);
     }
@@ -210,7 +231,9 @@ export class MedicinesService {
     }
 
     const csvText = readFileSync(filePath, 'utf8');
-    const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    const lines = csvText
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0);
 
     for (let i = 1; i < lines.length; i += 1) {
       const cells = this.parseCsvLine(lines[i]);

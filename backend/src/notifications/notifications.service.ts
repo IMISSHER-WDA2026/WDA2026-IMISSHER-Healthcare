@@ -30,9 +30,11 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationsRepository: Repository<Notification>,
-  ) { }
+  ) {}
 
-  async create(createNotificationDto: CreateNotificationDto): Promise<NotificationRecord> {
+  async create(
+    createNotificationDto: CreateNotificationDto,
+  ): Promise<NotificationRecord> {
     const now = new Date().toISOString();
     const isRead = createNotificationDto.isRead ?? false;
 
@@ -50,15 +52,22 @@ export class NotificationsService {
     return this.toRecord(savedRecord);
   }
 
-  async findAll(filters: NotificationFilters = {}): Promise<NotificationRecord[]> {
-    const query = this.notificationsRepository.createQueryBuilder('notification');
+  async findAll(
+    filters: NotificationFilters = {},
+  ): Promise<NotificationRecord[]> {
+    const query =
+      this.notificationsRepository.createQueryBuilder('notification');
 
     if (filters.userId) {
-      query.andWhere('notification.userId = :userId', { userId: filters.userId });
+      query.andWhere('notification.userId = :userId', {
+        userId: filters.userId,
+      });
     }
 
     if (filters.isRead !== undefined) {
-      query.andWhere('notification.isRead = :isRead', { isRead: filters.isRead });
+      query.andWhere('notification.isRead = :isRead', {
+        isRead: filters.isRead,
+      });
     }
 
     query.orderBy('notification.createdAt', 'DESC');
@@ -72,7 +81,9 @@ export class NotificationsService {
   }
 
   async findOne(id: number): Promise<NotificationRecord> {
-    const record = await this.notificationsRepository.findOne({ where: { id } });
+    const record = await this.notificationsRepository.findOne({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`Notification #${id} not found.`);
     }
@@ -84,7 +95,9 @@ export class NotificationsService {
     id: number,
     updateNotificationDto: UpdateNotificationDto,
   ): Promise<NotificationRecord> {
-    const existing = await this.notificationsRepository.findOne({ where: { id } });
+    const existing = await this.notificationsRepository.findOne({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException(`Notification #${id} not found.`);
     }
@@ -100,7 +113,7 @@ export class NotificationsService {
 
     if (changes.isRead !== undefined) {
       existing.isRead = changes.isRead;
-      existing.readAt = changes.isRead ? existing.readAt ?? new Date() : null;
+      existing.readAt = changes.isRead ? (existing.readAt ?? new Date()) : null;
     }
 
     const savedRecord = await this.notificationsRepository.save(existing);

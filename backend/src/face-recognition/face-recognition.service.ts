@@ -59,7 +59,10 @@ export interface FaceRecognitionRecord {
   updatedAt: string;
 }
 
-export interface FaceRecognitionResult extends Omit<FaceRecognitionRecord, 'vector'> {
+export interface FaceRecognitionResult extends Omit<
+  FaceRecognitionRecord,
+  'vector'
+> {
   vectorPreview: number[];
 }
 
@@ -80,9 +83,11 @@ export class FaceRecognitionService {
   constructor(
     @InjectRepository(FaceRecognition)
     private readonly faceRecognitionRepository: Repository<FaceRecognition>,
-  ) { }
+  ) {}
 
-  async create(createFaceRecognitionDto: CreateFaceRecognitionDto): Promise<FaceRecognitionResult> {
+  async create(
+    createFaceRecognitionDto: CreateFaceRecognitionDto,
+  ): Promise<FaceRecognitionResult> {
     const imageInput = await this.resolveImageInput(createFaceRecognitionDto);
     return this.processRecognition(createFaceRecognitionDto, imageInput);
   }
@@ -104,10 +109,12 @@ export class FaceRecognitionService {
   async findAll(userId?: string): Promise<FaceRecognitionResult[]> {
     const records = userId
       ? await this.faceRecognitionRepository.find({
-        where: { userId },
-        order: { createdAt: 'DESC' },
-      })
-      : await this.faceRecognitionRepository.find({ order: { createdAt: 'DESC' } });
+          where: { userId },
+          order: { createdAt: 'DESC' },
+        })
+      : await this.faceRecognitionRepository.find({
+          order: { createdAt: 'DESC' },
+        });
 
     return records.map((record) => this.toResult(record));
   }
@@ -185,7 +192,9 @@ export class FaceRecognitionService {
   }
 
   private async findOneRecord(id: number): Promise<FaceRecognition> {
-    const record = await this.faceRecognitionRepository.findOne({ where: { id } });
+    const record = await this.faceRecognitionRepository.findOne({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`Face recognition record #${id} not found.`);
     }
@@ -209,12 +218,17 @@ export class FaceRecognitionService {
     return 0.82;
   }
 
-  private assertAndNormalizeUpload(file?: UploadedImageInput): ResolvedImageInput {
+  private assertAndNormalizeUpload(
+    file?: UploadedImageInput,
+  ): ResolvedImageInput {
     if (!file || !Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
-      throw new BadRequestException('Image file is required in multipart field "file".');
+      throw new BadRequestException(
+        'Image file is required in multipart field "file".',
+      );
     }
 
-    const mimeType = file.mimetype?.split(';')[0]?.trim() || 'application/octet-stream';
+    const mimeType =
+      file.mimetype?.split(';')[0]?.trim() || 'application/octet-stream';
     const fileName = file.originalname?.trim() || 'face-upload.jpg';
 
     return {
@@ -242,7 +256,9 @@ export class FaceRecognitionService {
 
   private parseBase64Image(imageBase64: string): ResolvedImageInput {
     const trimmed = imageBase64.trim();
-    const dataUrlMatch = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s.exec(trimmed);
+    const dataUrlMatch = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s.exec(
+      trimmed,
+    );
 
     let mimeType = 'image/jpeg';
     let rawBase64 = trimmed;
@@ -256,7 +272,9 @@ export class FaceRecognitionService {
     try {
       buffer = Buffer.from(rawBase64, 'base64');
     } catch {
-      throw new BadRequestException('imageBase64 is not a valid base64 payload.');
+      throw new BadRequestException(
+        'imageBase64 is not a valid base64 payload.',
+      );
     }
 
     if (buffer.length === 0) {
@@ -270,7 +288,9 @@ export class FaceRecognitionService {
     };
   }
 
-  private async fetchImageFromUrl(imageUrl: string): Promise<ResolvedImageInput> {
+  private async fetchImageFromUrl(
+    imageUrl: string,
+  ): Promise<ResolvedImageInput> {
     let response: Response;
     try {
       response = await fetch(imageUrl);
@@ -279,10 +299,14 @@ export class FaceRecognitionService {
     }
 
     if (!response.ok) {
-      throw new BadRequestException(`Unable to download image from imageUrl (${response.status}).`);
+      throw new BadRequestException(
+        `Unable to download image from imageUrl (${response.status}).`,
+      );
     }
 
-    const mimeType = response.headers.get('content-type')?.split(';')[0]?.trim() || 'application/octet-stream';
+    const mimeType =
+      response.headers.get('content-type')?.split(';')[0]?.trim() ||
+      'application/octet-stream';
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const fileName = this.fileNameFromUrl(imageUrl);
@@ -324,7 +348,8 @@ export class FaceRecognitionService {
 
     let body: BodyInit;
     if (this.apiRequestMode === 'raw') {
-      headers['Content-Type'] = imageInput.mimeType || 'application/octet-stream';
+      headers['Content-Type'] =
+        imageInput.mimeType || 'application/octet-stream';
       body = Uint8Array.from(imageInput.buffer);
     } else if (this.apiRequestMode === 'json-base64') {
       headers['Content-Type'] = 'application/json';
@@ -342,7 +367,10 @@ export class FaceRecognitionService {
     }
 
     const controller = new AbortController();
-    const timeoutHandle = setTimeout(() => controller.abort(), this.apiTimeoutMs);
+    const timeoutHandle = setTimeout(
+      () => controller.abort(),
+      this.apiTimeoutMs,
+    );
 
     let response: Response;
     try {
@@ -356,7 +384,9 @@ export class FaceRecognitionService {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new BadGatewayException('Face recognition AI request timed out.');
       }
-      throw new BadGatewayException('Face recognition AI service is unavailable.');
+      throw new BadGatewayException(
+        'Face recognition AI service is unavailable.',
+      );
     } finally {
       clearTimeout(timeoutHandle);
     }
@@ -367,8 +397,8 @@ export class FaceRecognitionService {
     if (!response.ok) {
       throw new BadGatewayException(
         payload.message ||
-        payload.error ||
-        `Face recognition AI returned status ${response.status}.`,
+          payload.error ||
+          `Face recognition AI returned status ${response.status}.`,
       );
     }
 
@@ -406,7 +436,9 @@ export class FaceRecognitionService {
       }
     }
 
-    throw new BadGatewayException('Face recognition AI did not return a valid vector.');
+    throw new BadGatewayException(
+      'Face recognition AI did not return a valid vector.',
+    );
   }
 
   private toNumericVector(value: unknown): number[] | null {
@@ -434,10 +466,9 @@ export class FaceRecognitionService {
     return `data:${imageInput.mimeType};base64,${imageInput.buffer.toString('base64')}`;
   }
 
-  private normalizeRequestMode(rawMode: string | undefined):
-    | 'multipart'
-    | 'raw'
-    | 'json-base64' {
+  private normalizeRequestMode(
+    rawMode: string | undefined,
+  ): 'multipart' | 'raw' | 'json-base64' {
     const normalized = rawMode?.trim().toLowerCase();
     if (normalized === 'raw') {
       return 'raw';

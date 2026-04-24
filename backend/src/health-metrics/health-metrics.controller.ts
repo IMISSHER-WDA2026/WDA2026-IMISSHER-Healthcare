@@ -21,7 +21,10 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { HealthMetricsService } from './health-metrics.service';
-import { CreateHealthMetricDto, HealthMetricType } from './dto/create-health-metric.dto';
+import {
+  CreateHealthMetricDto,
+  HealthMetricType,
+} from './dto/create-health-metric.dto';
 import { UpdateHealthMetricDto } from './dto/update-health-metric.dto';
 
 @ApiTags('Health Metrics')
@@ -29,7 +32,7 @@ import { UpdateHealthMetricDto } from './dto/update-health-metric.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('health-metrics')
 export class HealthMetricsController {
-  constructor(private readonly healthMetricsService: HealthMetricsService) { }
+  constructor(private readonly healthMetricsService: HealthMetricsService) {}
 
   @ApiOperation({ summary: 'Tạo mới một bản ghi chỉ số sức khỏe.' })
   @Post()
@@ -38,13 +41,24 @@ export class HealthMetricsController {
   }
 
   @ApiOperation({ summary: 'Lấy danh sách chỉ số sức khỏe theo bộ lọc.' })
-  @ApiQuery({ name: 'userId', required: false, description: 'UUID người dùng.' })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    description: 'UUID người dùng.',
+  })
   @ApiQuery({ name: 'metricType', required: false, enum: HealthMetricType })
-  @ApiQuery({ name: 'limit', required: false, description: 'Giới hạn số bản ghi trả về.' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Giới hạn số bản ghi trả về.',
+  })
   @Get()
   findAll(
     @Query('userId') userId?: string,
-    @Query('metricType', new ParseEnumPipe(HealthMetricType, { optional: true }))
+    @Query(
+      'metricType',
+      new ParseEnumPipe(HealthMetricType, { optional: true }),
+    )
     metricType?: HealthMetricType,
     @Query('limit') limit?: string,
   ) {

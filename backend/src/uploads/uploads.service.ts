@@ -139,9 +139,9 @@ export class UploadsService implements OnModuleInit {
   async findAll(userId?: string): Promise<UploadResponse[]> {
     const records = userId
       ? await this.uploadsRepository.find({
-        where: { userId },
-        order: { createdAt: 'DESC' },
-      })
+          where: { userId },
+          order: { createdAt: 'DESC' },
+        })
       : await this.uploadsRepository.find({ order: { createdAt: 'DESC' } });
 
     return records.map((record) => this.toResponse(record));
@@ -151,7 +151,10 @@ export class UploadsService implements OnModuleInit {
     return this.toResponse(await this.findOneRecord(id));
   }
 
-  async update(id: number, updateUploadDto: UpdateUploadDto): Promise<UploadResponse> {
+  async update(
+    id: number,
+    updateUploadDto: UpdateUploadDto,
+  ): Promise<UploadResponse> {
     const existing = await this.findOneRecord(id);
 
     existing.userId = updateUploadDto.userId ?? existing.userId;
@@ -199,8 +202,14 @@ export class UploadsService implements OnModuleInit {
   }> {
     const record = await this.findOneRecord(id);
 
-    if (requestingUserId && record.userId && record.userId !== requestingUserId) {
-      throw new ForbiddenException('You do not have permission to access this file.');
+    if (
+      requestingUserId &&
+      record.userId &&
+      record.userId !== requestingUserId
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to access this file.',
+      );
     }
 
     const supabase = this.requireSupabase();
@@ -254,24 +263,34 @@ export class UploadsService implements OnModuleInit {
     return record;
   }
 
-  private assertAndNormalizeFile(file?: UploadedFileInput): NormalizedUploadFile {
+  private assertAndNormalizeFile(
+    file?: UploadedFileInput,
+  ): NormalizedUploadFile {
     if (!file || !Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
-      throw new BadRequestException('Multipart file is required in field "file".');
+      throw new BadRequestException(
+        'Multipart file is required in field "file".',
+      );
     }
 
     if (file.buffer.length > 20 * 1024 * 1024) {
-      throw new BadRequestException('Uploaded file exceeds the 20MB size limit.');
+      throw new BadRequestException(
+        'Uploaded file exceeds the 20MB size limit.',
+      );
     }
 
     return {
       buffer: file.buffer,
-      mimeType: file.mimetype?.split(';')[0]?.trim() || 'application/octet-stream',
+      mimeType:
+        file.mimetype?.split(';')[0]?.trim() || 'application/octet-stream',
       originalName: file.originalname?.trim() || 'upload.bin',
       size: file.size ?? file.buffer.length,
     };
   }
 
-  private buildStoragePath(userId: string | undefined, storedName: string): string {
+  private buildStoragePath(
+    userId: string | undefined,
+    storedName: string,
+  ): string {
     const prefix = userId?.trim() ? userId.trim() : 'anonymous';
     return `${prefix}/${storedName}`;
   }

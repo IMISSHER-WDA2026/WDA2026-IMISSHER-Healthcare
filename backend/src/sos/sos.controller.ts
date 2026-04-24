@@ -37,9 +37,11 @@ class BystanderSosDto {
 @ApiTags('SOS')
 @Controller('sos')
 export class SosController {
-  constructor(private readonly sosService: SosService) { }
+  constructor(private readonly sosService: SosService) {}
 
-  @ApiOperation({ summary: 'Tạo SOS khẩn cấp từ người xung quanh (không cần xác thực).' })
+  @ApiOperation({
+    summary: 'Tạo SOS khẩn cấp từ người xung quanh (không cần xác thực).',
+  })
   @Post('bystander')
   createBystander(@Body() dto: BystanderSosDto) {
     return this.sosService.create({
@@ -60,19 +62,26 @@ export class SosController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Lấy danh sách sự cố SOS theo bộ lọc.' })
-  @ApiQuery({ name: 'userId', required: false, description: 'UUID người dùng.' })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    description: 'UUID người dùng.',
+  })
   @ApiQuery({ name: 'status', required: false, enum: SosStatus })
   @Get()
   findAll(
     @Query('userId') userId?: string,
-    @Query('status', new ParseEnumPipe(SosStatus, { optional: true })) status?: SosStatus,
+    @Query('status', new ParseEnumPipe(SosStatus, { optional: true }))
+    status?: SosStatus,
   ) {
     return this.sosService.findAll({ userId, status });
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Lấy sự cố SOS đang mở/đã tiếp nhận mới nhất theo userId.' })
+  @ApiOperation({
+    summary: 'Lấy sự cố SOS đang mở/đã tiếp nhận mới nhất theo userId.',
+  })
   @ApiParam({ name: 'userId', description: 'UUID người dùng.' })
   @Get('active/:userId')
   findActiveByUser(@Param('userId') userId: string) {
@@ -94,7 +103,10 @@ export class SosController {
   @ApiOperation({ summary: 'Cập nhật trạng thái/thông tin sự cố SOS.' })
   @ApiParam({ name: 'id', description: 'ID số nguyên của sự cố.' })
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateSosDto: UpdateSosDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateSosDto: UpdateSosDto,
+  ) {
     return this.sosService.update(id, updateSosDto);
   }
 
