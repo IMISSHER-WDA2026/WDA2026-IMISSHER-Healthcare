@@ -200,8 +200,24 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
 
+      // Map backend error messages to localized keys
+      String localizedError = error.message;
+      final errorMsg = error.message.toLowerCase();
+      
+      if (errorMsg.contains('invalid') && errorMsg.contains('credential')) {
+        localizedError = widget.strings.t('errors.invalidCredentials');
+      } else if (errorMsg.contains('not found') || errorMsg.contains('does not exist')) {
+        localizedError = widget.strings.t('errors.userNotFound');
+      } else if (errorMsg.contains('already') && errorMsg.contains('exist')) {
+        localizedError = widget.strings.t('errors.emailExists');
+      } else if (errorMsg.contains('unauthorized')) {
+        localizedError = widget.strings.t('errors.unauthorized');
+      } else if (errorMsg.contains('server') || errorMsg.contains('internal')) {
+        localizedError = widget.strings.t('errors.serverError');
+      }
+
       setState(() {
-        _error = error.message;
+        _error = localizedError;
       });
     } catch (_) {
       if (!mounted) {
@@ -473,6 +489,11 @@ class _MainShellState extends State<MainShell> {
       widget.strings.t('tabs.chatbot'),
     ];
 
+    // Use special title for medicines shell
+    final appBarTitle = _selectedTab == 3
+        ? widget.strings.t('medicines.shellTitle')
+        : labels[_selectedTab];
+
     final pages = [
       HomeScreen(
         strings: widget.strings,
@@ -506,7 +527,7 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(labels[_selectedTab]),
+        title: Text(appBarTitle),
         actions: [
           TextButton.icon(
             onPressed: widget.onLanguageToggle,
@@ -776,51 +797,54 @@ class _HomeScreenState extends State<HomeScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final useRow = constraints.maxWidth >= 680;
-              final cards = [
-                Expanded(
-                  child: _SummaryCard(
-                    title: strings.t('home.medicalCardTitle'),
-                    icon: _AssetIcon(
-                      assetPath: 'assets/design/blood_icon.png',
-                      fallbackIcon: Icons.bloodtype,
-                    ),
-                    lines: [
-                      '${strings.t('home.bloodType')}: ${widget.session.bloodType ?? strings.t('common.notProvided')}',
-                      '${strings.t('home.allergies')}: ${widget.session.allergies ?? strings.t('common.notProvided')}',
-                      '${strings.t('home.emergencyCount')}: ${contacts.length}',
-                    ],
-                    onTap: widget.onOpenMedicalInfo,
-                  ),
+              
+              final card1 = _SummaryCard(
+                title: strings.t('home.medicalCardTitle'),
+                icon: _AssetIcon(
+                  assetPath: 'assets/design/blood_icon.png',
+                  fallbackIcon: Icons.bloodtype,
                 ),
-                const SizedBox(width: 12, height: 12),
-                Expanded(
-                  child: _SummaryCard(
-                    title: strings.t('home.medicineCardTitle'),
-                    icon: _AssetIcon(
-                      assetPath: 'assets/design/medicine_icon.png',
-                      fallbackIcon: Icons.medication,
-                    ),
-                    lines: _loadingMedicines
-                        ? [strings.t('common.loading')]
-                        : _medicineError != null
-                        ? [_medicineError!]
-                        : topMedicines.isEmpty
-                        ? [strings.t('medicines.empty')]
-                        : topMedicines,
-                    onTap: widget.onOpenMedicines,
-                  ),
+                lines: [
+                  '${strings.t('home.bloodType')}: ${widget.session.bloodType ?? strings.t('common.notProvided')}',
+                  '${strings.t('home.allergies')}: ${widget.session.allergies ?? strings.t('common.notProvided')}',
+                  '${strings.t('home.emergencyCount')}: ${contacts.length}',
+                ],
+                onTap: widget.onOpenMedicalInfo,
+              );
+
+              final card2 = _SummaryCard(
+                title: strings.t('home.medicineCardTitle'),
+                icon: _AssetIcon(
+                  assetPath: 'assets/design/medicine_icon.png',
+                  fallbackIcon: Icons.medication,
                 ),
-              ];
+                lines: _loadingMedicines
+                    ? [strings.t('common.loading')]
+                    : _medicineError != null
+                    ? [_medicineError!]
+                    : topMedicines.isEmpty
+                    ? [strings.t('medicines.empty')]
+                    : topMedicines,
+                onTap: widget.onOpenMedicines,
+              );
 
               if (useRow) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: cards,
+                  children: [
+                    Expanded(child: card1),
+                    const SizedBox(width: 12),
+                    Expanded(child: card2),
+                  ],
                 );
               }
 
               return Column(
-                children: [cards[0], const SizedBox(height: 12), cards[2]],
+                children: [
+                  card1,
+                  const SizedBox(height: 12),
+                  card2,
+                ],
               );
             },
           ),
@@ -1421,17 +1445,59 @@ class _SosScreenState extends State<SosScreen> {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Color(0xFF111827),
-                      child: Icon(Icons.person, color: Colors.white),
+                    Stack(
+                      children: [
+                        const CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Color(0xFF111827),
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFE11E2B),
+                            ),
+                            child: IconButton(
+                              constraints: const BoxConstraints(
+                                minHeight: 28,
+                                minWidth: 28,
+                              ),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(strings.t('common.loading'))),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        strings.t('sos.personalInfo'),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              strings.t('sos.personalInfo'),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(strings.t('common.loading'))),
+                              );
+                            },
+                            tooltip: widget.strings.t('medical.update'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1664,6 +1730,92 @@ enum ScannerMode { qr, barcode, face }
 
 const Duration _kScannerDebounce = Duration(milliseconds: 1500);
 
+/// Custom painter for scanner overlay guide
+class _ScannerOverlayPainter extends CustomPainter {
+  final ScannerMode mode;
+  final Size screenSize;
+
+  _ScannerOverlayPainter({required this.mode, required this.screenSize});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Semi-transparent dark overlay
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..color = Colors.black.withOpacity(0.4)
+        ..style = PaintingStyle.fill,
+    );
+
+    // Draw target area with clear (transparent) region
+    final paint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+
+    if (mode == ScannerMode.face) {
+      // Oval for face recognition
+      final ovalRect = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: size.width * 0.6,
+        height: size.height * 0.7,
+      );
+      canvas.drawOval(ovalRect, paint..blendMode = BlendMode.clear);
+
+      // Draw oval border
+      canvas.drawOval(
+        ovalRect,
+        Paint()
+          ..color = Colors.white70
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke,
+      );
+    } else {
+      // Rectangle for barcode/QR
+      final rectSize = size.width * 0.7;
+      final targetRect = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: rectSize,
+        height: rectSize,
+      );
+      canvas.drawRect(targetRect, paint..blendMode = BlendMode.clear);
+
+      // Draw rectangle border
+      canvas.drawRect(
+        targetRect,
+        Paint()
+          ..color = Colors.white70
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke,
+      );
+
+      // Draw corner markers
+      const cornerLength = 20.0;
+      final corners = [
+        [targetRect.topLeft, targetRect.topLeft + const Offset(cornerLength, 0), targetRect.topLeft + const Offset(0, cornerLength)],
+        [targetRect.topRight, targetRect.topRight + const Offset(-cornerLength, 0), targetRect.topRight + const Offset(0, cornerLength)],
+        [targetRect.bottomLeft, targetRect.bottomLeft + const Offset(cornerLength, 0), targetRect.bottomLeft + const Offset(0, -cornerLength)],
+        [targetRect.bottomRight, targetRect.bottomRight + const Offset(-cornerLength, 0), targetRect.bottomRight + const Offset(0, -cornerLength)],
+      ];
+
+      final cornerPaint = Paint()
+        ..color = Colors.white
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      for (final corner in corners) {
+        canvas.drawLine(corner[0], corner[1], cornerPaint);
+        canvas.drawLine(corner[0], corner[2], cornerPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ScannerOverlayPainter oldDelegate) {
+    return oldDelegate.mode != mode || oldDelegate.screenSize != screenSize;
+  }
+}
+
 String? _extractUserIdFromQr(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return null;
@@ -1701,10 +1853,9 @@ class ScannerScreen extends StatefulWidget {
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen> {
-  final MobileScannerController _cameraController = MobileScannerController(
-    formats: const [BarcodeFormat.qrCode, BarcodeFormat.ean13, BarcodeFormat.ean8, BarcodeFormat.code128, BarcodeFormat.upcA, BarcodeFormat.upcE],
-  );
+class _ScannerScreenState extends State<ScannerScreen> with WidgetsBindingObserver {
+  late final MobileScannerController _cameraController;
+  late final MobileScannerController _faceCameraController;
   ScannerMode _mode = ScannerMode.barcode;
   bool _isCameraActive = true;
   String? _scannedValue;
@@ -1712,15 +1863,68 @@ class _ScannerScreenState extends State<ScannerScreen> {
   String? _qrUserId;
   String? _error;
   bool _loading = false;
+  AppLifecycleState? _lastLifecycleState;
 
   DateTime? _lastDetectionAt;
   Timer? _debounceTimer;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _cameraController = MobileScannerController(
+      formats: const [BarcodeFormat.qrCode, BarcodeFormat.ean13, BarcodeFormat.ean8, BarcodeFormat.code128, BarcodeFormat.upcA, BarcodeFormat.upcE],
+    );
+    _faceCameraController = MobileScannerController(
+      facing: CameraFacing.front,
+      formats: const [],
+    );
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _debounceTimer?.cancel();
     _cameraController.dispose();
+    _faceCameraController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lastLifecycleState = state;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (_mode == ScannerMode.face) {
+          _faceCameraController.start();
+        } else if (_isCameraActive && _scannedValue == null) {
+          _cameraController.start();
+        }
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _cameraController.stop();
+        _faceCameraController.stop();
+        break;
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  /// Pause camera when tab loses focus
+  void pauseCamera() {
+    _cameraController.stop();
+    _faceCameraController.stop();
+  }
+
+  /// Resume camera when tab gains focus
+  void resumeCamera() {
+    if (_mode == ScannerMode.face) {
+      _faceCameraController.start();
+    } else if (_isCameraActive && _scannedValue == null) {
+      _cameraController.start();
+    }
   }
 
   bool _shouldAcceptDetection() {
@@ -1805,6 +2009,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
     _debounceTimer?.cancel();
     _lastDetectionAt = null;
 
+    // Stop both cameras before switching
+    await _cameraController.stop();
+    await _faceCameraController.stop();
+
     setState(() {
       _mode = next;
       _scannedValue = null;
@@ -1814,10 +2022,27 @@ class _ScannerScreenState extends State<ScannerScreen> {
       _isCameraActive = next != ScannerMode.face;
     });
 
+    // Start the appropriate camera
     if (next == ScannerMode.face) {
-      await _cameraController.stop();
+      try {
+        await _faceCameraController.start();
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _error = widget.strings.t('common.error');
+          });
+        }
+      }
     } else {
-      await _cameraController.start();
+      try {
+        await _cameraController.start();
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _error = widget.strings.t('common.error');
+          });
+        }
+      }
     }
   }
 
@@ -1888,30 +2113,48 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   Widget _buildCameraSurface(AppStrings strings) {
     if (_mode == ScannerMode.face) {
-      return Container(
-        color: Colors.black87,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+      return Stack(
+        children: [
+          MobileScanner(
+            controller: _faceCameraController,
+            onDetect: (_) {}, // Face detection is handled differently
+          ),
+          // Overlay with face recognition guide
+          CustomPaint(
+            painter: _ScannerOverlayPainter(
+              mode: _mode,
+              screenSize: MediaQuery.of(context).size,
+            ),
+            size: Size.infinite,
+          ),
+          // Controls
+          Positioned(
+            bottom: 12,
+            right: 12,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.face_retouching_natural, color: Colors.white70, size: 56),
-                const SizedBox(height: 12),
-                Text(
-                  strings.t('scanner.faceMode'),
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                FloatingActionButton.small(
+                  backgroundColor: const Color(0xFF0D5C7A),
+                  child: const Icon(Icons.image),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(strings.t('common.loading'))),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  strings.t('scanner.faceHint'),
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  textAlign: TextAlign.center,
+                FloatingActionButton.small(
+                  backgroundColor: const Color(0xFF0D5C7A),
+                  child: const Icon(Icons.flip_camera_ios),
+                  onPressed: () async {
+                    await _faceCameraController.switchCamera();
+                  },
                 ),
               ],
             ),
           ),
-        ),
+        ],
       );
     }
 
@@ -1941,9 +2184,21 @@ class _ScannerScreenState extends State<ScannerScreen> {
       );
     }
 
-    return MobileScanner(
-      controller: _cameraController,
-      onDetect: _onDetect,
+    return Stack(
+      children: [
+        MobileScanner(
+          controller: _cameraController,
+          onDetect: _onDetect,
+        ),
+        // Overlay with scanner guide
+        CustomPaint(
+          painter: _ScannerOverlayPainter(
+            mode: _mode,
+            screenSize: MediaQuery.of(context).size,
+          ),
+          size: Size.infinite,
+        ),
+      ],
     );
   }
 
@@ -2230,23 +2485,27 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
                       widget.strings.t('medicines.currentMedicines'),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${widget.strings.t('medicines.totalTypes')}: ${filteredItems.length}',
+                      textAlign: TextAlign.center,
                     ),
                     Text(
                       '${widget.strings.t('medicines.expired')}: $expiredCount',
+                      textAlign: TextAlign.center,
                     ),
                     Text(
                       '${widget.strings.t('medicines.nearExpiry')}: $nearExpiryCount',
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
