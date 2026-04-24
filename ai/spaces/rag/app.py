@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from pydantic import BaseModel, Field
 RAG_MODEL_NAME = os.getenv("RAG_EMBEDDING_MODEL", "keepitreal/vietnamese-sbert").strip()
 RAG_TOP_K_DEFAULT = int(os.getenv("RAG_TOP_K_DEFAULT", "3"))
 RAG_EMBEDDING_CACHE_ENV = os.getenv("RAG_EMBEDDING_CACHE_PATH", "").strip()
+RAG_USE_LLM = os.getenv("RAG_USE_LLM", "true").lower() == "true"
 
 app = FastAPI(
     title="Healthcare RAG Answering Model",
@@ -23,6 +25,7 @@ app = FastAPI(
 class RAGRequest(BaseModel):
     message: str = Field(min_length=1)
     topK: int | None = Field(default=None, ge=1, le=8)
+    language: str | None = Field(default=None)  # 'vi' or 'en'
 
 
 class RAGKnowledge(BaseModel):
@@ -34,11 +37,13 @@ class RAGKnowledge(BaseModel):
 class RAGResponse(BaseModel):
     answer: str
     contexts: list[RAGKnowledge]
+    source: str = "rag"
 
 
 _knowledge_rows: list[dict[str, str]] = []
 _embedding_matrix: np.ndarray | None = None
 _encoder: Any = None
+_llm_pipeline: Any = None
 
 
 def _resolve_data_file() -> Path | None:
@@ -117,10 +122,143 @@ def _load_encoder_and_embeddings() -> None:
             pass
 
 
+def _load_llm() -> None:
+    global _llm_pipeline
+    
+    if not RAG_USE_LLM:
+        return
+    
+    try:
+        from transformers import pipeline
+        # Use a lightweight text generation model
+        _llm_pipeline = pipeline(
+            "text2text-generation",
+            model="google/flan-t5-small",
+            device=-1,  # CPU, use device=0 for GPU
+        )
+    except Exception as e:
+        print(f"Warning: Could not load LLM pipeline: {e}")
+        _llm_pipeline = None
+
+
+def _detect_language(text: str) -> str:
+    """Detect if text is Vietnamese or English based on patterns."""
+    # Simple heuristic: check for Vietnamese diacritics and common words
+    vietnamese_patterns = [
+        r'[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]',
+        r'\b(là|được|có|cái|chiếc|qua|bạn|tôi|chúng|chúng tôi)\b',
+    ]
+    
+    vietnamese_score = sum(1 for pattern in vietnamese_patterns if re.search(pattern, text, re.IGNORECASE))
+    return 'vi' if vietnamese_score > 0 else 'en'
+
+
+def _is_greeting(text: str) -> bool:
+    """Check if the message is a greeting."""
+    greetings_vi = ['xin chào', 'hello', 'chào', 'hii', 'hey', 'hi']
+    greetings_en = ['hello', 'hi', 'hey', 'greetings', 'howdy']
+    
+    text_lower = text.lower().strip()
+    return any(greeting in text_lower for greeting in greetings_vi + greetings_en)
+
+
+def _generate_greeting_response(text: str, language: str | None = None) -> str:
+    """Generate a greeting response."""
+    if language is None:
+        language = _detect_language(text)
+    
+    if language == 'vi':
+        return "Xin chào! Tôi là trợ lý y tế. Có thể giúp bạn với câu hỏi gì không?"
+    else:
+        return "Hello! I'm a medical assistant. How can I help you with your medical questions?"
+
+
+def _generate_llm_response(user_query: str, contexts: list[RAGKnowledge], language: str | None = None) -> str:
+    """Generate a response using the LLM with retrieved context."""
+    if not _llm_pipeline or not contexts:
+        return _format_template_response(user_query, contexts, language)
+    
+    if language is None:
+        language = _detect_language(user_query)
+    
+    # Build context string
+    context_str = "\n".join([
+        f"{i+1}. {item.title}: {item.content}" 
+        for i, item in enumerate(contexts)
+    ])
+    
+    # Create prompt for the LLM
+    if language == 'vi':
+        system_prompt = """Bạn là một trợ lý y tế hữu ích. 
+Sử dụng thông tin dưới đây để trả lời câu hỏi của người dùng.
+Nếu thông tin không đủ, hãy nói rõ rằng bạn không có đủ thông tin.
+Luôn trả lời bằng Tiếng Việt với dấu thanh chính xác.
+Nhắc nhở người dùng rằng bạn không thể thay thế lời khuyên của bác sĩ."""
+        
+        prompt = f"""{system_prompt}
+
+Thông tin y tế có sẵn:
+{context_str}
+
+Câu hỏi của người dùng: {user_query}
+
+Hãy trả lời câu hỏi dựa trên thông tin y tế được cung cấp ở trên."""
+    else:
+        system_prompt = """You are a helpful medical assistant.
+Use the information below to answer the user's question.
+If the information is not sufficient, clearly state that you don't have enough information.
+Always respond in English.
+Remind the user that you cannot replace medical advice from a doctor."""
+        
+        prompt = f"""{system_prompt}
+
+Available medical information:
+{context_str}
+
+User question: {user_query}
+
+Please answer the question based on the medical information provided above."""
+    
+    try:
+        result = _llm_pipeline(prompt, max_length=512, min_length=50, do_sample=False)
+        return result[0]['generated_text'] if result else _format_template_response(user_query, contexts, language)
+    except Exception as e:
+        print(f"Error in LLM generation: {e}")
+        return _format_template_response(user_query, contexts, language)
+
+
+def _format_template_response(user_query: str, contexts: list[RAGKnowledge], language: str | None = None) -> str:
+    """Format a template-based response when LLM is not available."""
+    if language is None:
+        language = _detect_language(user_query)
+    
+    summary_lines = [
+        f"{i + 1}. {item.title}: {item.content}" for i, item in enumerate(contexts)
+    ]
+    
+    if language == 'vi':
+        answer_text = (
+            f"Thông tin tham khảo cho câu hỏi: \"{user_query}\":\n\n" +
+            "\n".join(summary_lines) +
+            "\n\nLưu ý: Đây là thông tin tham khảo, không thay thế chẩn đoán bác sĩ. "
+            "Vui lòng liên hệ với bác sĩ để được tư vấn chuyên môn."
+        )
+    else:
+        answer_text = (
+            f"Reference information for your question: \"{user_query}\":\n\n" +
+            "\n".join(summary_lines) +
+            "\n\nNote: This is reference information, not a medical diagnosis. "
+            "Please consult a doctor for professional medical advice."
+        )
+    
+    return answer_text
+
+
 @app.on_event("startup")
 def startup() -> None:
     _load_knowledge_base()
     _load_encoder_and_embeddings()
+    _load_llm()
 
 
 @app.get("/healthz")
@@ -129,18 +267,33 @@ def healthz() -> dict[str, Any]:
         "status": "ok",
         "model": RAG_MODEL_NAME,
         "knowledgeSize": len(_knowledge_rows),
+        "llmEnabled": _llm_pipeline is not None,
     }
 
 
 @app.post("/api/v1/rag/answer", response_model=RAGResponse)
 def answer(request: RAGRequest) -> RAGResponse:
     if _encoder is None or _embedding_matrix is None or len(_knowledge_rows) == 0:
+        if request.language == 'vi' or _detect_language(request.message) == 'vi':
+            error_msg = "Không tìm thấy tri thức nội bộ. Vui lòng cập nhật dữ liệu căm nang sơ cứu trước khi sử dụng RAG answering service."
+        else:
+            error_msg = "No internal knowledge found. Please update first aid knowledge data before using RAG answering service."
+        
         return RAGResponse(
-            answer=(
-                "Khong tim thay tri thuc noi bo. Vui long cap nhat du lieu cam nang so cuu "
-                "truoc khi su dung RAG answering space."
-            ),
+            answer=error_msg,
             contexts=[],
+            source="error",
+        )
+
+    # Detect language if not provided
+    language = request.language or _detect_language(request.message)
+    
+    # Handle greetings
+    if _is_greeting(request.message):
+        return RAGResponse(
+            answer=_generate_greeting_response(request.message, language),
+            contexts=[],
+            source="greeting",
         )
 
     top_k = request.topK or RAG_TOP_K_DEFAULT
@@ -163,13 +316,7 @@ def answer(request: RAGRequest) -> RAGResponse:
             )
         )
 
-    summary_lines = [
-        f"{i + 1}. {item.title}: {item.content}" for i, item in enumerate(contexts)
-    ]
-    answer_text = (
-        f"Huong dan tham khao cho cau hoi: '{request.message}'.\n"
-        + "\n".join(summary_lines)
-        + "\n\nLuu y: Day la thong tin tham khao, khong thay the chan doan bac si."
-    )
+    # Generate response using LLM if available, otherwise use template
+    answer_text = _generate_llm_response(request.message, contexts, language)
 
-    return RAGResponse(answer=answer_text, contexts=contexts)
+    return RAGResponse(answer=answer_text, contexts=contexts, source="llm" if _llm_pipeline else "template")
