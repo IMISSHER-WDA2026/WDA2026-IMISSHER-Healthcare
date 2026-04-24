@@ -2,7 +2,7 @@ name: Sync Face Space to Hugging Face
 
 on:
   push:
-    branches: [ "fe" ]
+    branches: [ "main" ]
     paths: [ "ai/spaces/face/**" ]
 
 jobs:

@@ -2,7 +2,7 @@ name: Sync RAG Space to Hugging Face
 
 on:
   push:
-    branches: [ "fe" ]
+    branches: [ "main" ]
     paths: 
       - "ai/spaces/rag/**"
       - "ai/data/first_aid_knowledge.csv"
